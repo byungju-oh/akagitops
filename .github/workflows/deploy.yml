@@ -48,27 +48,29 @@ jobs:
     - name: 🔐 Log in to Azure
       uses: azure/login@v1
       with:
-        creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
 
     - name: 🚀 Deploy to Azure Container Apps
-      uses: azure/container-apps-deploy-action@v1
-      with:
-        resource-group: ${{ env.RESOURCE_GROUP }}
-        container-app-name: ${{ env.CONTAINER_APP_NAME }}
-        container-image: ${{ env.REGISTRY_LOGIN_SERVER }}/sinkhole-app:${{ github.sha }}
-        environment-variables: |
-          SECRET_KEY=${{ secrets.SECRET_KEY }}
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          KAKAO_API_KEY=${{ secrets.KAKAO_API_KEY }}
-          AZURE_OPENAI_API_KEY=${{ secrets.AZURE_OPENAI_API_KEY }}
-          SEARCH_INDEX_NAME=${{ secrets.SEARCH_INDEX_NAME }}
-          SEARCH_KEY=${{ secrets.SEARCH_KEY }}
-          SEARCH_ENDPOINT=${{ secrets.SEARCH_ENDPOINT }}
-          ENDPOINT_URL=${{ secrets.ENDPOINT_URL }}
-          DEPLOYMENT_NAME=${{ secrets.DEPLOYMENT_NAME }}
-          AZURE_SPEECH_KEY=${{ secrets.AZURE_SPEECH_KEY }}
-          AZURE_SPEECH_REGION=${{ secrets.AZURE_SPEECH_REGION }}
-          PORT=8000
+      run: |
+        az containerapp update \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --image ${{ env.REGISTRY_LOGIN_SERVER }}/sinkhole-app:${{ github.sha }} \
+          --set-env-vars \
+            SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+            KAKAO_API_KEY="${{ secrets.KAKAO_API_KEY }}" \
+            AZURE_OPENAI_API_KEY="${{ secrets.AZURE_OPENAI_API_KEY }}" \
+            SEARCH_INDEX_NAME="${{ secrets.SEARCH_INDEX_NAME }}" \
+            SEARCH_KEY="${{ secrets.SEARCH_KEY }}" \
+            SEARCH_ENDPOINT="${{ secrets.SEARCH_ENDPOINT }}" \
+            ENDPOINT_URL="${{ secrets.ENDPOINT_URL }}" \
+            DEPLOYMENT_NAME="${{ secrets.DEPLOYMENT_NAME }}" \
+            AZURE_SPEECH_KEY="${{ secrets.AZURE_SPEECH_KEY }}" \
+            AZURE_SPEECH_REGION="${{ secrets.AZURE_SPEECH_REGION }}" \
+            PORT=8000
 
     - name: ✅ Verify deployment
       run: |
