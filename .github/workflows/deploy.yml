@@ -97,14 +97,22 @@ jobs:
 
     - name: ✅ Verify deployment
       run: |
-        echo "🚀 싱크홀 앱이 성공적으로 배포되었습니다!"
-        echo "URL: https://${{ env.CONTAINER_APP_NAME }}.graywave-2912aaea.koreacentral.azurecontainerapps.io"
-        
-        # 배포 상태 확인
-        az containerapp show \
+        # 실제 URL 가져오기
+        APP_URL=$(az containerapp show \
           --name ${{ env.CONTAINER_APP_NAME }} \
           --resource-group ${{ env.RESOURCE_GROUP }} \
-          --query "properties.runningStatus" -o tsv
+          --query "properties.configuration.ingress.fqdn" -o tsv)
+        
+        echo "🚀 싱크홀 앱이 성공적으로 배포되었습니다!"
+        echo "URL: https://$APP_URL"
+        
+        # 배포 상태 확인
+        RUNNING_STATUS=$(az containerapp show \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --query "properties.runningStatus" -o tsv)
+        
+        echo "상태: $RUNNING_STATUS"
 
     - name: 📊 Show recent logs
       run: |
@@ -112,4 +120,4 @@ jobs:
         az containerapp logs show \
           --name ${{ env.CONTAINER_APP_NAME }} \
           --resource-group ${{ env.RESOURCE_GROUP }} \
-          --follow --tail 20 || echo "로그를 가져올 수 없습니다. 수동으로 확인해주세요."
+          --tail 20 || echo "로그를 가져올 수 없습니다. 수동으로 확인해주세요."

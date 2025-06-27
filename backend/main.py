@@ -3054,7 +3054,6 @@ async def test_destination_service():
 
 
 # 정적 파일 마운트
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 # React 앱 서빙 (모든 라우트의 맨 마지막에 배치)
