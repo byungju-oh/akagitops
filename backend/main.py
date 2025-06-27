@@ -125,9 +125,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 # 라우터 포함
 app.include_router(chatbot_router)
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-
 # 데이터베이스 의존성
 def get_db():
     db = SessionLocal()
