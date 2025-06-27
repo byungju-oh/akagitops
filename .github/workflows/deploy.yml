@@ -112,4 +112,4 @@ jobs:
         az containerapp logs show \
           --name ${{ env.CONTAINER_APP_NAME }} \
           --resource-group ${{ env.RESOURCE_GROUP }} \
-          --since 5m
+          --follow --tail 20 || echo "로그를 가져올 수 없습니다. 수동으로 확인해주세요."

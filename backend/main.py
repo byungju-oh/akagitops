@@ -29,6 +29,9 @@ import shutil
 from pathlib import Path
 from exercise_route_service import exercise_route_service
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 # 로컬 모듈 임포트
 from chatbot_routes import chatbot_router
 from database import SessionLocal, engine, Base
@@ -63,7 +66,7 @@ if not logging.getLogger().handlers:
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 logger = logging.getLogger(__name__)
-
+app.mount("/static", StaticFiles(directory="static"), name="static")
 # 목적지 처리 모듈 import (오류 처리 포함)
 try:
     from destination_processor import process_destination_text, destination_processor
@@ -110,7 +113,7 @@ app = FastAPI(
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -3033,6 +3036,18 @@ async def test_destination_service():
             "error": str(e),
             "message": "목적지 처리 서비스 테스트 실패",
         }
+
+
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    if full_path.startswith(("api", "docs", "redoc", "openapi.json")):
+        raise HTTPException(404)
+
+    file_path = f"static/{full_path}"
+    if full_path and os.path.isfile(file_path):
+        return FileResponse(file_path)
+
+    return FileResponse("static/index.html")
 
 
 # =============================================================================
