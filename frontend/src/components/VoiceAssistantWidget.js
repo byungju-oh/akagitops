@@ -127,8 +127,8 @@ const VoiceAssistantWidget = () => {
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.wav');
-      
-      const response = await fetch('http://localhost:8000/chatbot/voice-to-text', {
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      const response = await fetch('http://${API_BASE_URL}/chatbot/voice-to-text', {
         method: 'POST',
         body: formData
       });

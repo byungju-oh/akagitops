@@ -69,7 +69,7 @@ const ReportChatbot = () => {
       console.log('🔄 백엔드 API 호출 중...', { query, hasImage: !!imageFile });
 
       // 실제 백엔드 RAG API 호출
-      const response = await fetch('http://localhost:8000/chatbot/ask', {
+      const response = await fetch('${process.env.REACT_APP_API_URL}/chatbot/ask', {
         method: 'POST',
         body: formData,
         // Content-Type은 FormData 사용시 자동 설정되므로 생략
