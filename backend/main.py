@@ -66,7 +66,7 @@ if not logging.getLogger().handlers:
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 logger = logging.getLogger(__name__)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # 목적지 처리 모듈 import (오류 처리 포함)
 try:
     from destination_processor import process_destination_text, destination_processor
@@ -124,6 +124,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # 라우터 포함
 app.include_router(chatbot_router)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 # 데이터베이스 의존성
