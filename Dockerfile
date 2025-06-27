@@ -1,0 +1,48 @@
+# 멀티스테이지 빌드: React 프론트엔드 + Python Flask 백엔드 + FFmpeg
+FROM node:18-alpine AS frontend-builder
+
+# React 프론트엔드 빌드
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+
+# 빌드 시 환경변수
+ARG REACT_APP_API_URL
+ARG REACT_APP_MAP_CENTER_LAT
+ARG REACT_APP_MAP_CENTER_LNG
+
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ENV REACT_APP_MAP_CENTER_LAT=$REACT_APP_MAP_CENTER_LAT
+ENV REACT_APP_MAP_CENTER_LNG=$REACT_APP_MAP_CENTER_LNG
+
+COPY frontend/ ./
+RUN npm run build
+
+# Python Flask 백엔드 런타임 (FFmpeg 포함)
+FROM python:3.9-slim AS runtime
+
+WORKDIR /app
+
+# 시스템 의존성 및 FFmpeg 설치
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libavcodec-extra \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python 의존성 설치
+COPY backend/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 백엔드 소스코드 복사
+COPY backend/ ./
+
+# React 빌드 결과를 Flask의 static 폴더로 복사
+COPY --from=frontend-builder /app/frontend/build ./static
+
+# FFmpeg 설치 확인
+RUN ffmpeg -version
+
+EXPOSE 8000
+
+# Flask 서버 시작
+CMD ["python", "app.py"]
