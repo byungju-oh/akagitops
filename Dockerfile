@@ -45,4 +45,4 @@ RUN ffmpeg -version
 EXPOSE 8000
 
 # Flask 서버 시작
-CMD ["python", "app.py"]
+CMD ["python", "main.py"]
