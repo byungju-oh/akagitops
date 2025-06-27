@@ -88,42 +88,39 @@ jobs:
             AZURE_SPEECH_REGION="${{ secrets.AZURE_SPEECH_REGION }}" \
             PORT=8000
 
-    - name: 🔧 Update Ingress Configuration
+    - name: 🔧 Update target port
       run: |
-        # 먼저 현재 ingress 설정 확인
-        echo "현재 ingress 설정:"
-        az containerapp ingress show \
-          --name ${{ env.CONTAINER_APP_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} || echo "Ingress 설정 없음"
-        
-        # Ingress 업데이트 - 포트와 라우팅 규칙 설정
         az containerapp ingress update \
           --name ${{ env.CONTAINER_APP_NAME }} \
           --resource-group ${{ env.RESOURCE_GROUP }} \
-          --target-port 8000 \
-          --type external \
-          --allow-insecure
+          --target-port 8000
 
-    - name: 🔧 Configure Container App Revision
+    - name: ⏳ Wait for deployment completion
       run: |
-        # 새 리비전 생성 및 트래픽 100% 할당
-        echo "🔄 새 리비전으로 트래픽 전환 중..."
+        echo "🔄 배포 완료 대기 중..."
+        sleep 30
         
-        # 활성 리비전 확인
-        ACTIVE_REVISION=$(az containerapp revision list \
-          --name ${{ env.CONTAINER_APP_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --query "[?properties.active].name" -o tsv | head -1)
-        
-        echo "활성 리비전: $ACTIVE_REVISION"
-        
-        # 모든 트래픽을 최신 리비전으로 라우팅
-        if [ ! -z "$ACTIVE_REVISION" ]; then
-          az containerapp ingress traffic set \
+        # 배포 상태 확인
+        for i in {1..12}; do
+          RUNNING_STATUS=$(az containerapp show \
             --name ${{ env.CONTAINER_APP_NAME }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --revision-weight $ACTIVE_REVISION=100
-        fi
+            --query "properties.runningStatus" -o tsv)
+          
+          echo "배포 상태 확인 $i/12: $RUNNING_STATUS"
+          
+          if [ "$RUNNING_STATUS" = "Running" ]; then
+            echo "✅ 배포 완료!"
+            break
+          fi
+          
+          if [ $i -eq 12 ]; then
+            echo "❌ 배포 타임아웃"
+            exit 1
+          fi
+          
+          sleep 15
+        done
 
     - name: ✅ Verify deployment
       run: |
@@ -144,17 +141,18 @@ jobs:
         
         echo "상태: $RUNNING_STATUS"
         
-        # API 엔드포인트 테스트
+        # API 엔드포인트 테스트 (약간의 대기 후)
         echo "🔍 API 엔드포인트 테스트 중..."
+        sleep 10
         
         # Health check 테스트
         echo "Testing health endpoints:"
-        curl -f "https://$APP_URL/health" && echo "✅ /health 응답 정상" || echo "❌ /health 응답 실패"
-        curl -f "https://$APP_URL/api/health" && echo "✅ /api/health 응답 정상" || echo "❌ /api/health 응답 실패"
-        curl -f "https://$APP_URL/status" && echo "✅ /status 응답 정상" || echo "❌ /status 응답 실패"
+        curl -f -m 10 "https://$APP_URL/health" && echo "✅ /health 응답 정상" || echo "❌ /health 응답 실패"
+        curl -f -m 10 "https://$APP_URL/api/health" && echo "✅ /api/health 응답 정상" || echo "❌ /api/health 응답 실패"
+        curl -f -m 10 "https://$APP_URL/status" && echo "✅ /status 응답 정상" || echo "❌ /status 응답 실패"
         
         # 메인 페이지 테스트
-        curl -f "https://$APP_URL/" && echo "✅ 메인 페이지 응답 정상" || echo "❌ 메인 페이지 응답 실패"
+        curl -f -m 10 "https://$APP_URL/" && echo "✅ 메인 페이지 응답 정상" || echo "❌ 메인 페이지 응답 실패"
 
     - name: 📊 Show recent logs
       run: |
@@ -162,13 +160,4 @@ jobs:
         az containerapp logs show \
           --name ${{ env.CONTAINER_APP_NAME }} \
           --resource-group ${{ env.RESOURCE_GROUP }} \
-          --tail 30 || echo "로그를 가져올 수 없습니다. 수동으로 확인해주세요."
-        
-        echo ""
-        echo "🔧 추가 디버깅 정보:"
-        echo "Container App 상세 정보:"
-        az containerapp show \
-          --name ${{ env.CONTAINER_APP_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --query "{name:name,status:properties.runningStatus,fqdn:properties.configuration.ingress.fqdn,replicas:properties.template.scale}" \
-          -o table
+          --tail 20 || echo "로그를 가져올 수 없습니다. 수동으로 확인해주세요."
