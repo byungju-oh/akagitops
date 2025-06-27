@@ -2824,34 +2824,47 @@ async def shutdown_event():
 # =============================================================================
 # 시스템 상태 및 헬스체크 API (통합)
 # =============================================================================
-
-
 @app.get("/")
-async def root():
-    """API 루트 엔드포인트"""
-    return {
-        "message": "Seoul Safety Navigation API",
-        "version": "2.0.0",
-        "features": [
-            "실시간 싱크홀 위험도 예측",
-            "Azure Speech 음성 안내",
-            "안전 도보 경로 생성",
-            "위험지역 우회 알고리즘",
-            "카카오맵 & OpenStreetMap 통합 검색",
-            "STT + 목적지 정제 통합 처리",
-        ],
-        "endpoints": {
-            "authentication": ["/register", "/token", "/users/me"],
-            "risk_prediction": ["/predict-risk", "/risk-zones"],
-            "navigation": ["/walking-route", "/safe-walking-route"],
-            "geocoding": ["/geocode", "/search-location", "/search-location-combined"],
-            "speech": ["/api/tts", "/api/voices", "/api/navigation-tts"],
-            "destination": ["/api/process-destination", "/api/validate-destination"],
-            "stt": ["/api/stt-with-destination-processing", "/api/stt-debug"],
-            "chatbot": ["/chatbot/ask", "/chatbot/voice-chat"],
-            "health": ["/api/health", "/health", "/status"],
-        },
-    }
+async def serve_index():
+    """메인 페이지 - React 앱 서빙"""
+    if os.path.isfile("static/index.html"):
+        return FileResponse("static/index.html")
+    else:
+        # React 빌드 파일이 없으면 API 정보 반환
+        return {
+            "message": "Seoul Safety Navigation API",
+            "version": "2.0.0",
+            "note": "React app not found. Please check build files.",
+            "static_files": os.listdir("static") if os.path.exists("static") else [],
+        }
+
+
+# @app.get("/")
+# async def root():
+#     """API 루트 엔드포인트"""
+#     return {
+#         "message": "Seoul Safety Navigation API",
+#         "version": "2.0.0",
+#         "features": [
+#             "실시간 싱크홀 위험도 예측",
+#             "Azure Speech 음성 안내",
+#             "안전 도보 경로 생성",
+#             "위험지역 우회 알고리즘",
+#             "카카오맵 & OpenStreetMap 통합 검색",
+#             "STT + 목적지 정제 통합 처리",
+#         ],
+#         "endpoints": {
+#             "authentication": ["/register", "/token", "/users/me"],
+#             "risk_prediction": ["/predict-risk", "/risk-zones"],
+#             "navigation": ["/walking-route", "/safe-walking-route"],
+#             "geocoding": ["/geocode", "/search-location", "/search-location-combined"],
+#             "speech": ["/api/tts", "/api/voices", "/api/navigation-tts"],
+#             "destination": ["/api/process-destination", "/api/validate-destination"],
+#             "stt": ["/api/stt-with-destination-processing", "/api/stt-debug"],
+#             "chatbot": ["/chatbot/ask", "/chatbot/voice-chat"],
+#             "health": ["/api/health", "/health", "/status"],
+#         },
+#     }
 
 
 @app.get("/api/health")
