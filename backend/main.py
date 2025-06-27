@@ -3038,16 +3038,44 @@ async def test_destination_service():
         }
 
 
+# 정적 파일 마운트
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# React 앱 서빙 (모든 라우트의 맨 마지막에 배치)
 @app.get("/{full_path:path}")
 async def serve_react_app(full_path: str):
-    if full_path.startswith(("api", "docs", "redoc", "openapi.json")):
-        raise HTTPException(404)
+    """React SPA 서빙"""
 
+    # API 경로는 제외 (기존 API가 우선)
+    if full_path.startswith(
+        (
+            "api",
+            "docs",
+            "redoc",
+            "openapi.json",
+            "token",
+            "register",
+            "predict-risk",
+            "walking-route",
+            "geocode",
+            "chatbot",
+            "health",
+            "status",
+        )
+    ):
+        raise HTTPException(status_code=404, detail="Not found")
+
+    # 실제 파일이 있으면 서빙
     file_path = f"static/{full_path}"
     if full_path and os.path.isfile(file_path):
         return FileResponse(file_path)
 
-    return FileResponse("static/index.html")
+    # 모든 경우에 index.html 반환 (React Router 지원)
+    if os.path.isfile("static/index.html"):
+        return FileResponse("static/index.html")
+    else:
+        raise HTTPException(status_code=404, detail="Frontend not found")
 
 
 # =============================================================================
