@@ -49,15 +49,21 @@ jobs:
       uses: azure/login@v1
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     - name: 🚀 Deploy to Azure Container Apps
       run: |
         az containerapp update \
           --name ${{ env.CONTAINER_APP_NAME }} \
           --resource-group ${{ env.RESOURCE_GROUP }} \
-          --image ${{ env.REGISTRY_LOGIN_SERVER }}/sinkhole-app:${{ github.sha }} \
+          --image ${{ env.REGISTRY_LOGIN_SERVER }}/sinkhole-app:${{ github.sha }}
+
+    - name: 🔧 Update environment variables
+      run: |
+        az containerapp update \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
           --set-env-vars \
             SECRET_KEY="${{ secrets.SECRET_KEY }}" \
             DATABASE_URL="${{ secrets.DATABASE_URL }}" \
@@ -72,7 +78,28 @@ jobs:
             AZURE_SPEECH_REGION="${{ secrets.AZURE_SPEECH_REGION }}" \
             PORT=8000
 
+    - name: 🔧 Update target port
+      run: |
+        az containerapp ingress update \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --target-port 8000
+
     - name: ✅ Verify deployment
       run: |
         echo "🚀 싱크홀 앱이 성공적으로 배포되었습니다!"
-        echo "URL: https://${{ env.CONTAINER_APP_NAME }}.azurecontainerapps.io"
+        echo "URL: https://${{ env.CONTAINER_APP_NAME }}.graywave-2912aaea.koreacentral.azurecontainerapps.io"
+        
+        # 배포 상태 확인
+        az containerapp show \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --query "properties.runningStatus" -o tsv
+
+    - name: 📊 Show recent logs
+      run: |
+        echo "📋 최근 로그:"
+        az containerapp logs show \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --since 5m
