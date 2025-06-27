@@ -127,8 +127,8 @@ const VoiceAssistantWidget = () => {
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.wav');
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-      const response = await fetch('http://${API_BASE_URL}/chatbot/voice-to-text', {
+      
+      const response = await fetch('/chatbot/voice-to-text', {
         method: 'POST',
         body: formData
       });
@@ -167,7 +167,7 @@ const VoiceAssistantWidget = () => {
       formData.append('audio', audioBlob, 'recording.wav');
       formData.append('voice_name', 'ko-KR-HyunsuMultilingualNeural');
       
-      const response = await fetch('http://localhost:8000/chatbot/voice-chat', {
+      const response = await fetch('/chatbot/voice-chat', {
         method: 'POST',
         body: formData
       });
@@ -369,7 +369,7 @@ const stopRecording = () => {
         formData.append('query', query);
         formData.append('voice_name', 'ko-KR-HyunsuMultilingualNeural');
 
-        const response = await fetch('http://localhost:8000/chatbot/ask-with-voice', {
+        const response = await fetch('/chatbot/ask-with-voice', {
           method: 'POST',
           body: formData
         });
@@ -399,7 +399,7 @@ const stopRecording = () => {
         const formData = new FormData();
         formData.append('query', query);
 
-        const response = await fetch('http://localhost:8000/chatbot/ask', {
+        const response = await fetch('/chatbot/ask', {
           method: 'POST',
           body: formData
         });
