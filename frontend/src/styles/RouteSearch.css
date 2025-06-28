@@ -874,3 +874,338 @@
   color: #3498db;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
+/* =============================================================================
+   추천 산책로 패널 스타일 (업데이트됨)
+   ============================================================================= */
+
+.recommend-panel {
+  padding: 10px;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.recommend-panel h3 {
+  font-size: 1.3em;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 8px;
+}
+
+.recommend-panel p {
+  font-size: 0.9em;
+  color: #7f8c8d;
+  margin-bottom: 16px;
+}
+
+/* 새로 추가: 기준 위치 선택 섹션 스타일 */
+.recommend-location-section {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #dee2e6;
+}
+
+.recommend-location-section label {
+  display: block;
+  font-weight: 600;
+  color: #343a40;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.recommend-location-section .input-with-suggestions {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.recommend-location-section .search-input-container {
+  position: relative;
+  flex: 1;
+}
+
+.recommend-location-section input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: white;
+  box-sizing: border-box;
+}
+
+.recommend-location-section input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-radius: 10px 10px 0 0;
+}
+
+.recommend-location-section .current-location-btn {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-size: 14px;
+  min-width: 45px;
+}
+
+.recommend-location-section .current-location-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.recommend-location-section .current-location-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 로딩 스피너 스타일 개선 */
+.loading-spinner {
+  text-align: center;
+  padding: 20px;
+  font-size: 16px;
+  color: #667eea;
+  font-weight: 500;
+}
+
+.course-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* 커스텀 스크롤바 for 산책로 목록 */
+.course-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.course-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.course-list::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 10px;
+}
+
+.course-list::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #764ba2, #667eea);
+}
+
+.course-card {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.course-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  border-color: #3498db;
+}
+
+.course-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.course-type {
+  font-size: 0.75em;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 12px;
+  color: #fff;
+}
+
+.course-type.park { background-color: #27ae60; }
+.course-type.river { background-color: #2980b9; }
+.course-type.stream { background-color: #1abc9c; }
+.course-type.mountain { background-color: #d35400; }
+.course-type.trail { background-color: #8e44ad; }
+.course-type.history { background-color: #7f8c8d; }
+
+.course-distance {
+  font-size: 0.8em;
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+.course-name {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 10px 0;
+}
+
+.course-tags {
+  margin-bottom: 12px;
+}
+
+.course-tags .tag {
+  display: inline-block;
+  background-color: #ecf0f1;
+  color: #7f8c8d;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.75em;
+  margin-right: 6px;
+  margin-bottom: 6px;
+}
+
+.course-select-btn {
+  width: 100%;
+  padding: 10px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  text-align: center;
+  display: none; /* 기본 숨김 */
+}
+
+.course-card:hover .course-select-btn {
+  display: block; /* 호버 시 표시 */
+}
+
+.course-select-btn:hover {
+  background: #2980b9;
+}
+
+/* 탭 UI 개선 */
+.search-tabs {
+  display: flex;
+  margin-bottom: 16px;
+  background-color: #f0f2f5;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: #555;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+  background-color: #ffffff;
+  color: #3498db;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* 반응형 디자인 - 산책로 추천 섹션 */
+@media (max-width: 768px) {
+  .recommend-location-section {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .recommend-location-section .input-with-suggestions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .recommend-location-section .current-location-btn {
+    width: 100%;
+  }
+  
+  .course-list {
+    max-height: 300px;
+  }
+  
+  .course-card {
+    padding: 12px;
+  }
+  
+  .course-name {
+    font-size: 1em;
+  }
+  
+  .course-tags .tag {
+    font-size: 0.7em;
+    padding: 2px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .recommend-panel {
+    padding: 8px;
+  }
+  
+  .recommend-panel h3 {
+    font-size: 1.2em;
+    margin-bottom: 6px;
+  }
+  
+  .recommend-location-section {
+    padding: 12px;
+  }
+  
+  .recommend-location-section label {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  
+  .recommend-location-section input {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .course-card {
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+  
+  .course-card-header {
+    margin-bottom: 6px;
+  }
+  
+  .course-type {
+    font-size: 0.7em;
+    padding: 3px 6px;
+  }
+  
+  .course-distance {
+    font-size: 0.75em;
+  }
+  
+  .course-name {
+    font-size: 0.95em;
+    margin-bottom: 8px;
+  }
+  
+  .course-tags {
+    margin-bottom: 8px;
+  }
+  
+  .course-select-btn {
+    padding: 8px;
+    font-size: 0.9em;
+  }
+}

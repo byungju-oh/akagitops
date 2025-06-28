@@ -1,11 +1,11 @@
-// frontend/src/RouteSearch.js - 음성 안내 기능이 복구된 최종 완료 버전
+// frontend/src/RouteSearch.js - 산책로 추천 위치 선택 기능이 추가된 최종 버전
 
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from 'react-leaflet';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import L from 'leaflet';
-import AzureVoiceNavigation from '../components/AzureVoiceNavigation'; // 음성 안내 컴포넌트 다시 임포트
+import AzureVoiceNavigation from '../components/AzureVoiceNavigation';
 import '../styles/RouteSearch.css';
 import '../styles/VoiceNavigation.css';
 
@@ -35,6 +35,13 @@ const RouteSearch = () => {
   
   const [recommendedCourses, setRecommendedCourses] = useState([]);
   const [searchTimeout, setSearchTimeout] = useState(null);
+  
+  // 새로 추가: 산책로 추천용 기준 위치 관련 state
+  const [recommendBaseLocation, setRecommendBaseLocation] = useState('');
+  const [recommendBaseCoords, setRecommendBaseCoords] = useState(null);
+  const [recommendSuggestions, setRecommendSuggestions] = useState([]);
+  const [showRecommendSuggestions, setShowRecommendSuggestions] = useState(false);
+  
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -42,7 +49,7 @@ const RouteSearch = () => {
     return () => { if (searchTimeout) clearTimeout(searchTimeout); };
   }, []);
 
-  // 음성 안내 기능 관련 함수들 다시 추가
+  // 음성 안내 기능 관련 함수들
   const handleVoiceRouteFound = (foundRoute, currentLoc, destCoords, destName) => {
     setRoute(foundRoute);
     setStartCoords(currentLoc);
@@ -90,6 +97,11 @@ const RouteSearch = () => {
           const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
           setStartCoords(coords);
           setStartLocation(`현재위치 (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`);
+          
+          // 산책로 추천 탭용 기준 위치도 설정
+          setRecommendBaseCoords(coords);
+          setRecommendBaseLocation(`현재위치 (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`);
+          
           setLoading(false);
           toast.success('현재 위치를 가져왔습니다.');
           if (autoFetchCourses) fetchRecommendedCourses(coords);
@@ -102,20 +114,43 @@ const RouteSearch = () => {
     }
   };
 
+  // 새로 추가: 산책로 추천용 현재위치 가져오기
+  const handleRecommendCurrentLocation = () => {
+    if (navigator.geolocation) {
+      setLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setRecommendBaseCoords(coords);
+          setRecommendBaseLocation(`현재위치 (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`);
+          setLoading(false);
+          toast.success('현재 위치를 가져왔습니다.');
+          fetchRecommendedCourses(coords);
+        },
+        () => { setLoading(false); toast.error('위치 정보를 가져올 수 없습니다.'); },
+        { timeout: 10000, enableHighAccuracy: true }
+      );
+    } else {
+      toast.error('이 브라우저는 위치 서비스를 지원하지 않습니다.');
+    }
+  };
+
   const handleSelectCourse = async (course) => {
-    if (!startCoords) {
-      toast.error("현재 위치를 먼저 확인해주세요.");
+    if (!recommendBaseCoords) {
+      toast.error("기준 위치를 먼저 설정해주세요.");
       return;
     }
     const destinationCoords = { lat: course.center.lat, lng: course.center.lng };
     setEndLocation(course.name);
     setEndCoords(destinationCoords);
+    setStartCoords(recommendBaseCoords);
+    setStartLocation(recommendBaseLocation);
     
     setLoading(true);
     try {
       const endpoint = '/safe-walking-route';
       const response = await axios.post(endpoint, {
-        start_latitude: startCoords.lat, start_longitude: startCoords.lng,
+        start_latitude: recommendBaseCoords.lat, start_longitude: recommendBaseCoords.lng,
         end_latitude: destinationCoords.lat, end_longitude: destinationCoords.lng
       });
       setRoute(response.data);
@@ -154,6 +189,15 @@ const RouteSearch = () => {
     locSetter(place.place_name);
     coordsSetter({ lat: parseFloat(place.y), lng: parseFloat(place.x) });
     showSetter(false);
+  };
+
+  // 새로 추가: 산책로 추천용 위치 선택
+  const selectRecommendLocation = (place) => {
+    setRecommendBaseLocation(place.place_name);
+    setRecommendBaseCoords({ lat: parseFloat(place.y), lng: parseFloat(place.x) });
+    setShowRecommendSuggestions(false);
+    // 위치가 선택되면 바로 추천 산책로 검색
+    fetchRecommendedCourses({ lat: parseFloat(place.y), lng: parseFloat(place.x) });
   };
   
   const handleSearch = async (start = startCoords, end = endCoords) => {
@@ -210,29 +254,27 @@ const RouteSearch = () => {
                 </div>
               </div>
               <div className="input-group">
-    <label>도착지:</label>
-    {/* 👇 이 div를 추가하여 input과 제안 목록을 함께 감싸줍니다. */}
-    <div style={{ position: 'relative' }}> 
-        <input 
-            type="text" 
-            value={endLocation} 
-            onChange={(e) => handleLocationChange(setEndLocation, e.target.value, setEndSuggestions, setShowEndSuggestions)} 
-            onFocus={() => endSuggestions.length > 0 && setShowEndSuggestions(true)} 
-            placeholder="예: 홍대입구"
-        />
-        {/* 👇 제안 목록을 input과 같은 div 안으로 이동시켰습니다. */}
-        {showEndSuggestions && 
-            <div className="suggestions-dropdown">
-                {endSuggestions.slice(0, 5).map((p, i) => (
-                    <div key={i} className="suggestion-item" onClick={() => selectLocation(p, setEndLocation, setEndCoords, setShowEndSuggestions)}>
-                        <div>{p.place_name}</div>
-                        <div className="place-address">{p.address_name}</div>
-                    </div>
-                ))}
-            </div>
-        }
-    </div>
-</div>
+                <label>도착지:</label>
+                <div style={{ position: 'relative' }}> 
+                    <input 
+                        type="text" 
+                        value={endLocation} 
+                        onChange={(e) => handleLocationChange(setEndLocation, e.target.value, setEndSuggestions, setShowEndSuggestions)} 
+                        onFocus={() => endSuggestions.length > 0 && setShowEndSuggestions(true)} 
+                        placeholder="예: 홍대입구"
+                    />
+                    {showEndSuggestions && 
+                        <div className="suggestions-dropdown">
+                            {endSuggestions.slice(0, 5).map((p, i) => (
+                                <div key={i} className="suggestion-item" onClick={() => selectLocation(p, setEndLocation, setEndCoords, setShowEndSuggestions)}>
+                                    <div>{p.place_name}</div>
+                                    <div className="place-address">{p.address_name}</div>
+                                </div>
+                            ))}
+                        </div>
+                    }
+                </div>
+              </div>
               <button onClick={() => handleSearch()} disabled={loading} className="search-btn">{loading ? '🔍 경로 계산 중...' : '🚶‍♂️ 경로 검색'}</button>
             </div>
           </>
@@ -241,23 +283,61 @@ const RouteSearch = () => {
         {activeTab === 'recommend' && (
           <div className="recommend-panel">
             <h3>🏞️ 주변 추천 산책로</h3>
-            <p>현재 위치에서 가까운 걷기 좋은 곳들이에요.</p>
-            {loading && <div className="loading-spinner"></div>}
-            <div className="course-list">
-              {recommendedCourses.slice(0, 10).map((course, index) => (
-                <div key={index} className="course-card" onClick={() => handleSelectCourse(course)}>
-                  <div className="course-card-header">
-                    <span className={`course-type ${course.type}`}>{course.type_description}</span>
-                    <span className="course-distance">약 {course.distance.toFixed(1)}km</span>
-                  </div>
-                  <h4 className="course-name">{course.name}</h4>
-                  <div className="course-tags">
-                    {course.recommended_activities.slice(0, 3).map((tag, i) => (<span key={i} className="tag">{tag}</span>))}
-                  </div>
-                  <button className="course-select-btn">이곳으로 안전경로 안내</button>
+            
+            {/* 새로 추가: 기준 위치 선택 섹션 */}
+            <div className="recommend-location-section">
+              <label>기준 위치:</label>
+              <div className="input-with-suggestions">
+                <div className="search-input-container">
+                  <input 
+                    type="text" 
+                    value={recommendBaseLocation} 
+                    onChange={(e) => handleLocationChange(setRecommendBaseLocation, e.target.value, setRecommendSuggestions, setShowRecommendSuggestions)} 
+                    onFocus={() => recommendSuggestions.length > 0 && setShowRecommendSuggestions(true)} 
+                    placeholder="예: 강남역, 홍대입구"
+                  />
+                  {showRecommendSuggestions && 
+                    <div className="suggestions-dropdown">
+                      {recommendSuggestions.slice(0, 5).map((p, i) => (
+                        <div key={i} className="suggestion-item" onClick={() => selectRecommendLocation(p)}>
+                          <div>{p.place_name}</div>
+                          <div className="place-address">{p.address_name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  }
                 </div>
-              ))}
+                <button onClick={handleRecommendCurrentLocation} className="current-location-btn" disabled={loading}>📍</button>
+              </div>
             </div>
+
+            <p style={{ marginTop: '15px', fontSize: '14px', color: '#666' }}>
+              {recommendBaseCoords ? '선택한 위치 기준으로 가까운 걷기 좋은 곳들이에요.' : '위치를 선택하시면 주변 산책로를 추천해드려요.'}
+            </p>
+            
+            {loading && <div className="loading-spinner">🔄 추천 산책로 검색 중...</div>}
+            
+            {recommendedCourses.length > 0 ? (
+              <div className="course-list">
+                {recommendedCourses.slice(0, 10).map((course, index) => (
+                  <div key={index} className="course-card" onClick={() => handleSelectCourse(course)}>
+                    <div className="course-card-header">
+                      <span className={`course-type ${course.type}`}>{course.type_description}</span>
+                      <span className="course-distance">약 {course.distance.toFixed(1)}km</span>
+                    </div>
+                    <h4 className="course-name">{course.name}</h4>
+                    <div className="course-tags">
+                      {course.recommended_activities.slice(0, 3).map((tag, i) => (<span key={i} className="tag">{tag}</span>))}
+                    </div>
+                    <button className="course-select-btn">이곳으로 안전경로 안내</button>
+                  </div>
+                ))}
+              </div>
+            ) : recommendBaseCoords && !loading && (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                해당 위치 주변에서 추천할 수 있는 산책로가 없습니다.
+              </div>
+            )}
           </div>
         )}
 
@@ -284,10 +364,16 @@ const RouteSearch = () => {
       </div>
 
       <div className="map-container">
-        <MapContainer center={startCoords || [37.5665, 126.9780]} zoom={13} style={{ height: '100%', width: '100%' }} ref={mapRef}>
+        <MapContainer center={startCoords || recommendBaseCoords || [37.5665, 126.9780]} zoom={13} style={{ height: '100%', width: '100%' }} ref={mapRef}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
           {startCoords && <Marker position={[startCoords.lat, startCoords.lng]}><Popup>🚩 출발지</Popup></Marker>}
           {endCoords && <Marker position={[endCoords.lat, endCoords.lng]}><Popup>🎯 도착지: {endLocation}</Popup></Marker>}
+          {/* 산책로 추천 기준 위치 표시 (경로가 없을 때만) */}
+          {!startCoords && recommendBaseCoords && (
+            <Marker position={[recommendBaseCoords.lat, recommendBaseCoords.lng]}>
+              <Popup>📍 기준 위치: {recommendBaseLocation}</Popup>
+            </Marker>
+          )}
           {route?.waypoints && <Polyline positions={route.waypoints.map(wp => [wp.lat, wp.lng])} color={getRouteColor(route.route_type)} weight={5} />}
           {route?.avoided_zones?.map((zone, index) => <CircleMarker key={index} center={[zone.lat, zone.lng]} radius={20} color="#FF5722" fillOpacity={0.3}><Popup><h4>⚠️ {zone.name}</h4><p>위험도: {(zone.risk * 100).toFixed(1)}%</p></Popup></CircleMarker>)}
         </MapContainer>
