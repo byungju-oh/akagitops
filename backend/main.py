@@ -9,6 +9,7 @@ import uvicorn
 from datetime import datetime, timedelta
 import random
 import math
+from math import radians, cos, sin, asin, sqrt
 import requests
 import os
 import base64
@@ -35,7 +36,7 @@ from fastapi.responses import FileResponse
 # 로컬 모듈 임포트
 from chatbot_routes import chatbot_router
 from database import SessionLocal, engine, Base
-from models import User, Location, RiskPrediction
+from models import User, Location, RiskPrediction ,UserPoints, PointHistory
 from schemas import (
     UserCreate,
     UserResponse,
@@ -1488,6 +1489,7 @@ async def startup_event():
     print("🚀 Seoul Safety Navigation API 시작")
     print("🗺️ 도보 경로 서비스 초기화 완료")
     print("🎤 Azure Speech Service 준비 완료")
+    
     load_construction_data()
 
 @app.on_event("shutdown")
@@ -3577,10 +3579,162 @@ async def get_system_status():
         },
     }
 
+################포인트
+@app.get("/api/points/my-points")
+async def get_my_points(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """사용자 포인트 정보 조회"""
+    
+    user_points = db.query(UserPoints).filter(UserPoints.user_id == current_user.id).first()
+    total_points = user_points.points if user_points else 0
+    
+    # 포인트 히스토리 조회 (최근 10개)
+    point_history = db.query(PointHistory).filter(
+        PointHistory.user_id == current_user.id
+    ).order_by(PointHistory.earned_at.desc()).limit(10).all()
+    
+    return {
+        "total_points": total_points,
+        "point_history": [
+            {
+                "point_type": history.point_type,
+                "points_earned": history.points_earned,
+                "description": history.description,
+                "earned_at": history.earned_at.isoformat()
+            }
+            for history in point_history
+        ]
+    }
+
+@app.post("/api/points/sinkhole-report")
+async def add_sinkhole_report_points(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """싱크홀 신고 포인트 추가 (하루 한 번 제한)"""
+    
+    # 하루에 한 번만 포인트 지급 확인
+    today = datetime.now().date()
+    existing_report = db.query(PointHistory).filter(
+        PointHistory.user_id == current_user.id,
+        PointHistory.point_type == "sinkhole_report",
+        PointHistory.earned_at >= datetime.combine(today, datetime.min.time())
+    ).first()
+    
+    if existing_report:
+        raise HTTPException(status_code=400, detail="오늘은 이미 싱크홀 신고 포인트를 받으셨습니다.")
+    
+    # 포인트 추가
+    points_to_add = 10
+    
+    # 사용자 포인트 테이블 확인/생성
+    user_points = db.query(UserPoints).filter(UserPoints.user_id == current_user.id).first()
+    if not user_points:
+        user_points = UserPoints(user_id=current_user.id, points=0)
+        db.add(user_points)
+    
+    # 포인트 추가
+    user_points.points += points_to_add
+    user_points.updated_at = datetime.utcnow()
+    
+    # 포인트 히스토리 추가
+    point_history = PointHistory(
+        user_id=current_user.id,
+        point_type="sinkhole_report",
+        points_earned=points_to_add,
+        description="싱크홀 신고 확인으로 인한 포인트 지급"
+    )
+    
+    db.add(point_history)
+    db.commit()
+    
+    return {
+        "message": "싱크홀 신고 포인트가 지급되었습니다",
+        "points_earned": points_to_add,
+        "total_points": user_points.points
+    }
+
+
+class WalkingRouteComplete(BaseModel):
+    start_latitude: float
+    start_longitude: float
+    destination_latitude: float
+    destination_longitude: float
+
+@app.post("/api/points/walking-route")
+async def add_walking_route_points(
+    route_data: WalkingRouteComplete,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """추천 산책경로 완주 포인트 추가"""
+    
+    # GPS 위치 검증 로직 (실제로는 더 정밀한 검증 필요)
+    # 시작점과 목적지 거리 계산
+    from math import radians, cos, sin, asin, sqrt
+    
+    def haversine(lon1, lat1, lon2, lat2):
+        """두 GPS 좌표 간의 거리 계산 (km)"""
+        lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * asin(sqrt(a))
+        r = 6371  # 지구 반지름 (km)
+        return c * r
+    
+    distance = haversine(
+        route_data.start_longitude, 
+        route_data.start_latitude,
+        route_data.destination_longitude, 
+        route_data.destination_latitude
+    )
+    
+    # 최소 거리 요구사항 (예: 0.5km 이상)
+    if distance < 0.5:
+        raise HTTPException(status_code=400, detail="산책 거리가 너무 짧습니다. (최소 0.5km)")
+    
+    # 포인트 추가
+    points_to_add = 10
+    
+    # 사용자 포인트 테이블 확인/생성
+    user_points = db.query(UserPoints).filter(UserPoints.user_id == current_user.id).first()
+    if not user_points:
+        user_points = UserPoints(user_id=current_user.id, points=0)
+        db.add(user_points)
+    
+    # 포인트 추가
+    user_points.points += points_to_add
+    user_points.updated_at = datetime.utcnow()
+    
+    # 포인트 히스토리 추가
+    point_history = PointHistory(
+        user_id=current_user.id,
+        point_type="walking_route",
+        points_earned=points_to_add,
+        description=f"산책경로 완주 ({distance:.2f}km)"
+    )
+    
+    db.add(point_history)
+    db.commit()
+    
+    return {
+        "message": "산책경로 완주 포인트가 지급되었습니다",
+        "points_earned": points_to_add,
+        "distance_completed": f"{distance:.2f}km",
+        "total_points": user_points.points
+    }
+
 
 # =============================================================================
 # 개발용 테스트 엔드포인트 (통합)
 # =============================================================================
+
+
+
+
 
 
 @app.get("/test/voice")

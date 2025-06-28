@@ -1,339 +1,175 @@
-// frontend/src/pages/ReportChatbot.js - 이미지 압축 기능 추가
+// frontend/src/pages/ReportChatbot.js
 import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext'; // 로그인 상태 확인
+import { toast } from 'react-toastify';
 import '../styles/ReportChatbot.css';
 
 const ReportChatbot = () => {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'bot',
-      content: '안녕하세요! 싱크홀 신고 도우미입니다. 어떤 도움이 필요하신가요?\n\n📸 사진을 업로드하면 AI가 싱크홀 여부를 분석해드립니다!\n💬 텍스트로도 궁금한 점을 질문해주세요!',
-      timestamp: new Date()
-    }
-  ]);
+  const { user } = useAuth(); // 로그인 상태 확인
+  const [messages, setMessages] = useState([{
+    id: 1,
+    type: 'bot',
+    content: '안녕하세요! 싱크홀 신고 도우미입니다. 🕳️\n\n궁금한 점이 있으시거나 사진을 업로드해주시면 AI가 분석해드릴게요!',
+    timestamp: new Date()
+  }]);
+  
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showPointsModal, setShowPointsModal] = useState(false); // 포인트 모달 상태
+  const [pointsEarned, setPointsEarned] = useState(0); // 적립된 포인트
   const [analysisResult, setAnalysisResult] = useState(null);
-  const [isCompressing, setIsCompressing] = useState(false); // 🆕 압축 상태
-  const [compressionInfo, setCompressionInfo] = useState(null); // 🆕 압축 정보
+  const [compressionInfo, setCompressionInfo] = useState(null);
   
-  const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null);
   const chatContainerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  // 메시지 스크롤 자동 이동
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
+  // 메시지 추가 시 스크롤 자동 이동
   useEffect(() => {
-    scrollToBottom();
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
-  // 🆕 이미지 압축 함수
-  const compressImage = (file, maxSizeMB = 3, quality = 0.8, maxDimension = 2048) => {
-    return new Promise((resolve, reject) => {
+  // 이미지 압축 함수
+  const compressImage = (file, maxSizeMB = 2, quality = 0.8) => {
+    return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
       
-      img.onerror = () => reject(new Error('이미지 로드 실패'));
-      
       img.onload = () => {
-        try {
-          // 🔧 크기 계산 (비율 유지)
-          let { width, height } = img;
-          
-          // 최대 해상도 제한
-          if (width > height && width > maxDimension) {
-            height = (height * maxDimension) / width;
-            width = maxDimension;
-          } else if (height > maxDimension) {
-            width = (width * maxDimension) / height;
-            height = maxDimension;
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          
-          // 🔧 고품질 리샘플링
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          // 🔧 압축된 Blob 생성
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                // File 객체로 변환 (원본 파일명 유지)
-                const compressedFile = new File([blob], file.name, {
-                  type: 'image/jpeg',
-                  lastModified: Date.now()
-                });
-                resolve(compressedFile);
-              } else {
-                reject(new Error('압축 실패'));
-              }
-            },
-            'image/jpeg',
-            quality
-          );
-        } catch (error) {
-          reject(error);
+        // 이미지 크기 조정 로직
+        let { width, height } = img;
+        const maxDimension = 1200;
+        
+        if (width > height && width > maxDimension) {
+          height = (height * maxDimension) / width;
+          width = maxDimension;
+        } else if (height > maxDimension) {
+          width = (width * maxDimension) / height;
+          height = maxDimension;
         }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // 이미지 그리기
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Blob으로 변환
+        canvas.toBlob((blob) => {
+          const originalSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+          const compressedSizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+          
+          setCompressionInfo({
+            original: originalSizeMB,
+            compressed: compressedSizeMB,
+            ratio: ((1 - blob.size / file.size) * 100).toFixed(1)
+          });
+          
+          resolve(blob);
+        }, 'image/jpeg', quality);
       };
       
       img.src = URL.createObjectURL(file);
     });
   };
 
-  // 🔧 이미지 파일 선택 처리 (압축 기능 추가)
-  const handleImageSelect = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // 🔧 기본 검증
-    if (!file.type.startsWith('image/')) {
-      alert('❌ 이미지 파일만 업로드 가능합니다.\n\n지원 형식: JPG, PNG, GIF, BMP');
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+  // 이미지 선택 처리
+  const handleImageSelect = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) { // 10MB 제한
+        toast.error('이미지 크기는 10MB 이하로 업로드해주세요.');
+        return;
       }
-      return;
-    }
 
-    // 🔧 최대 파일 크기 확인 (50MB)
-    const maxFileSize = 50 * 1024 * 1024; // 50MB
-    if (file.size > maxFileSize) {
-      alert(`❌ 파일이 너무 큽니다!\n\n• 현재 크기: ${(file.size / (1024 * 1024)).toFixed(1)}MB\n• 최대 크기: 50MB\n\n📝 해결 방법:\n• 사진 해상도를 낮춰주세요\n• 다른 이미지 편집 앱으로 압축해주세요\n• 다른 사진을 선택해주세요`);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      return;
-    }
-
-    // 🔧 압축이 필요한지 확인 (3MB 이상)
-    const needsCompression = file.size > 3 * 1024 * 1024; // 3MB
-    let finalFile = file;
-    let compressionData = null;
-
-    if (needsCompression) {
       try {
-        setIsCompressing(true);
-        console.log(`🔄 이미지 압축 시작... (원본: ${(file.size / (1024 * 1024)).toFixed(1)}MB)`);
+        // 이미지 압축
+        const compressedBlob = await compressImage(file);
+        const compressedFile = new File([compressedBlob], file.name, {
+          type: 'image/jpeg',
+          lastModified: Date.now()
+        });
+
+        setSelectedImage(compressedFile);
         
-        // 압축 수행
-        const compressedFile = await compressImage(file, 3, 0.8, 2048);
-        
-        compressionData = {
-          originalSize: file.size,
-          compressedSize: compressedFile.size,
-          compressionRatio: ((file.size - compressedFile.size) / file.size * 100).toFixed(1),
-          originalSizeMB: (file.size / (1024 * 1024)).toFixed(1),
-          compressedSizeMB: (compressedFile.size / (1024 * 1024)).toFixed(1)
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPreviewImage(e.target.result);
         };
-        
-        console.log(`✅ 압축 완료: ${compressionData.originalSizeMB}MB → ${compressionData.compressedSizeMB}MB (${compressionData.compressionRatio}% 감소)`);
-        
-        finalFile = compressedFile;
-        setCompressionInfo(compressionData);
-        
-      } catch (compressionError) {
-        console.error('❌ 압축 실패:', compressionError);
-        alert(`⚠️ 이미지 압축에 실패했습니다.\n\n원본 이미지를 사용합니다.\n오류: ${compressionError.message}`);
-        finalFile = file;
-        setCompressionInfo(null);
-      } finally {
-        setIsCompressing(false);
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error('이미지 압축 실패:', error);
+        toast.error('이미지 처리 중 오류가 발생했습니다.');
       }
-    } else {
-      console.log(`✅ 압축 불필요: ${(file.size / (1024 * 1024)).toFixed(1)}MB`);
-      setCompressionInfo(null);
     }
-
-    // 🔧 최종 파일 크기 재확인 (5MB)
-    if (finalFile.size > 5 * 1024 * 1024) {
-      alert(`❌ 압축 후에도 파일이 여전히 큽니다!\n\n• 압축 후 크기: ${(finalFile.size / (1024 * 1024)).toFixed(1)}MB\n• 허용 크기: 5MB\n\n📝 해결 방법:\n• 더 작은 해상도의 사진을 선택해주세요\n• 사진 편집 앱으로 추가 압축해주세요`);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      setCompressionInfo(null);
-      return;
-    }
-
-    // 🔧 파일 설정 및 미리보기
-    setSelectedImage(finalFile);
-    setAnalysisResult(null);
-    
-    // 미리보기 생성
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewImage(e.target.result);
-    };
-    reader.readAsDataURL(finalFile);
-    
-    // 자동으로 이미지 분석 수행
-    performImageAnalysis(finalFile);
   };
 
-  // 이미지 분석 수행
-  const performImageAnalysis = async (imageFile) => {
-    if (!imageFile) return;
-    
-    setIsAnalyzing(true);
-    
+  // 포인트 적립 API 호출
+  const claimSinkholeReportPoints = async () => {
     try {
-      const formData = new FormData();
-      formData.append('image', imageFile);
+      const token = localStorage.getItem('token');
       
-      console.log('🔍 이미지 분석 시작...', {
-        fileName: imageFile.name,
-        fileSize: `${(imageFile.size / (1024 * 1024)).toFixed(1)}MB`,
-        fileType: imageFile.type
-      });
+      // 토큰 확인
+      if (!token) {
+        toast.error('로그인이 필요합니다.');
+        return;
+      }
       
-      const response = await fetch('/chatbot/analyze-image', {
+      console.log('🏆 포인트 적립 요청 시작...');
+      
+      const response = await fetch('/api/points/sinkhole-report', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
-      
-      if (!response.ok) {
-        if (response.status === 413) {
-          throw new Error('파일이 너무 큽니다. 더 작은 이미지를 선택해주세요.');
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
+
+      console.log('📡 포인트 API 응답 상태:', response.status);
+
       const data = await response.json();
+      console.log('📊 포인트 API 응답 데이터:', data);
       
-      if (data.success) {
-        setAnalysisResult(data.analysis_result);
-        console.log('✅ 이미지 분석 완료:', data.analysis_result);
-        
-        // 분석 결과를 채팅에 자동으로 표시
-        showAnalysisResultInChat(data.analysis_result);
+      if (response.ok) {
+        setPointsEarned(data.points_earned);
+        setShowPointsModal(true);
+        toast.success(data.message);
       } else {
-        console.error('❌ 이미지 분석 실패:', data.error);
-        showAnalysisErrorInChat(data.error);
+        if (response.status === 401) {
+          toast.error('로그인이 만료되었습니다. 다시 로그인해주세요.');
+        } else {
+          toast.error(data.detail || '포인트 지급 실패');
+        }
       }
-      
     } catch (error) {
-      console.error('❌ 이미지 분석 API 오류:', error);
-      if (error.message.includes('파일이 너무 큽니다')) {
-        showAnalysisErrorInChat('파일이 너무 큽니다. 이미지를 더 압축해주세요.');
-      } else {
-        showAnalysisErrorInChat('이미지 분석 서비스에 연결할 수 없습니다.');
-      }
-    } finally {
-      setIsAnalyzing(false);
+      console.error('포인트 적립 오류:', error);
+      toast.error('포인트 적립 중 오류가 발생했습니다');
     }
   };
 
-  // 분석 결과를 채팅에 표시
-  const showAnalysisResultInChat = (result) => {
-    let analysisMessage = '';
-    let emoji = '';
-    
-    if (result.is_sinkhole && result.confidence >= 70) {
-      emoji = '🚨';
-      analysisMessage = `**싱크홀이 탐지되었습니다!** (확률: ${result.confidence_percent}%)
-
-⚠️ **즉시 안전 조치를 취해주세요:**
-• 해당 지역에서 즉시 대피하세요
-• 주변 사람들에게 위험을 알려주세요
-• 119에 즉시 신고하세요
-
-📊 **분석 상세:**
-• 위험도: ${result.risk_level.toUpperCase()}
-• 탐지된 객체: ${result.total_detections}개
-• 권장사항: ${result.recommendation}`;
-    } else if (result.confidence >= 50) {
-      emoji = '🤔';
-      analysisMessage = `**분석 결과가 불확실합니다** (확률: ${result.confidence_percent}%)
-
-현재 이미지에서 싱크홀 특징이 일부 감지되었지만 확실하지 않습니다.
-
-💡 **권장사항:**
-• 더 선명한 사진으로 다시 촬영해보세요
-• 다양한 각도에서 추가 사진을 촬영하세요
-• 의심스러운 부분이 있다면 신고를 고려하세요
-
-📊 **분석 상세:**
-• 위험도: ${result.risk_level.toUpperCase()}
-• ${result.recommendation}`;
-    } else {
-      emoji = '✅';
-      analysisMessage = `**싱크홀이 아닌 것으로 보입니다**
-
-AI 분석 결과 싱크홀의 특징이 감지되지 않았습니다.
-
-🔍 **하지만 다음과 같은 경우 추가 확인을 권장합니다:**
-• 도로나 보도에 균열이나 침하가 보이는 경우
-• 지면에서 물이 새어 나오는 경우
-• 주변에서 이상한 소리가 나는 경우
-
-다른 질문이 있으시면 언제든 말씀해주세요!`;
-    }
-    
-    const botMessage = {
-      id: Date.now(),
-      type: 'bot',
-      content: analysisMessage,
-      source: '싱크홀 AI 분석',
-      analysisData: result,
-      timestamp: new Date()
-    };
-    
-    setMessages(prev => [...prev, botMessage]);
-  };
-
-  // 분석 오류를 채팅에 표시
-  const showAnalysisErrorInChat = (errorMessage) => {
-    const errorBotMessage = {
-      id: Date.now(),
-      type: 'bot',
-      content: `❌ **이미지 분석 중 오류가 발생했습니다**
-
-${errorMessage}
-
-💡 **대안 방법:**
-• 이미지 파일 크기를 줄여서 다시 시도해보세요
-• 다른 형식(JPG, PNG)으로 저장해서 시도해보세요
-• 텍스트로 상황을 설명해주시면 도움을 드릴 수 있습니다
-
-📞 **긴급상황시:**
-• 119 (응급상황)
-• 120 (다산콜센터)`,
-      source: '분석 오류',
-      timestamp: new Date()
-    };
-    
-    setMessages(prev => [...prev, errorBotMessage]);
-  };
-
-  // 이미지 선택 취소
-  const handleImageCancel = () => {
-    setSelectedImage(null);
-    setPreviewImage(null);
-    setAnalysisResult(null);
-    setCompressionInfo(null); // 🆕 압축 정보 초기화
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  // RAG 시스템 API 호출
+  // RAG 시스템 호출
   const callRAGSystem = async (query, imageFile = null) => {
     try {
+      console.log('🤖 RAG API 호출 시작:', { query, hasImage: !!imageFile });
+
       const formData = new FormData();
       formData.append('query', query);
+      
       if (imageFile) {
         formData.append('image', imageFile);
+        console.log('📎 이미지 파일 첨부:', {
+          name: imageFile.name,
+          size: `${(imageFile.size / 1024).toFixed(1)} KB`,
+          type: imageFile.type
+        });
       }
 
-      console.log('🔄 백엔드 API 호출 중...', { query, hasImage: !!imageFile });
+      console.log('📡 API 요청 전송 중...');
+      setAnalysisResult({ status: 'analyzing', message: 'AI가 이미지를 분석하고 있습니다...' });
 
       const response = await fetch('/chatbot/ask', {
         method: 'POST',
@@ -345,8 +181,15 @@ ${errorMessage}
       }
 
       const data = await response.json();
-      
       console.log('✅ API 응답 성공:', data);
+      
+      // 🔍 이미지 분석 결과 상세 로깅
+      if (data.image_analysis) {
+        console.log('📊 이미지 분석 결과:', data.image_analysis);
+        console.log('   - confidence_percent:', data.image_analysis.confidence_percent);
+        console.log('   - risk_level:', data.image_analysis.risk_level);
+        console.log('   - source:', data.source);
+      }
 
       return {
         answer: data.answer || '응답을 받을 수 없습니다.',
@@ -393,7 +236,7 @@ ${errorMessage}
     setSelectedImage(null);
     setPreviewImage(null);
     setAnalysisResult(null);
-    setCompressionInfo(null); // 🆕 압축 정보 초기화
+    setCompressionInfo(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -412,6 +255,65 @@ ${errorMessage}
       };
 
       setMessages(prev => [...prev, botMessage]);
+
+      // 🆕 로그인된 사용자이고 AI가 실제로 싱크홀로 판정한 경우에만 포인트 버튼 표시
+      if (user && imageFile && response.imageAnalysis) {
+        // AI 분석 결과에서 싱크홀 판정 확인 (안전한 체크)
+        const analysis = response.imageAnalysis;
+        const confidence = analysis.confidence_percent || 0;
+        const riskLevel = analysis.risk_level || 'low';
+        const source = response.source || '';
+        
+        // 🔍 디버깅 정보 출력
+        console.log('=== 포인트 판정 디버깅 ===');
+        console.log('user:', !!user);
+        console.log('imageFile:', !!imageFile);
+        console.log('response.imageAnalysis:', response.imageAnalysis);
+        console.log('confidence:', confidence);
+        console.log('riskLevel:', riskLevel);
+        console.log('source:', source);
+        
+        const isSinkholeDetected = confidence >= 70 && source === '싱크홀 AI 분석';
+        // risk_level이 없어도 높은 확률이면 싱크홀로 판정
+        
+        console.log('isSinkholeDetected:', isSinkholeDetected);
+        console.log('confidence >= 70:', confidence >= 70);
+        console.log('source === 싱크홀 AI 분석:', source === '싱크홀 AI 분석');
+        console.log('=== 수정된 조건: risk_level 체크 제거 ===');
+        console.log('===========================');
+        
+        // 실제 싱크홀로 판정된 경우에만 포인트 버튼 표시
+        if (isSinkholeDetected) {
+          const pointsMessage = {
+            id: Date.now() + 2,
+            type: 'bot',
+            content: `🚨 AI가 싱크홀로 판정했습니다! (확률: ${confidence}%)\n\n🏆 신고 완료 후 포인트를 받으시려면 아래 버튼을 클릭하세요!`,
+            showPointsButton: true,
+            analysisData: analysis,
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, pointsMessage]);
+        } else if (confidence < 70) {
+          // 싱크홀이 아닌 것으로 판정된 경우
+          const noPointsMessage = {
+            id: Date.now() + 2,
+            type: 'bot',
+            content: `📋 AI 분석 결과 싱크홀 가능성이 낮습니다. (확률: ${confidence}%)\n\n포인트는 싱크홀로 확실히 판정된 경우에만 지급됩니다.`,
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, noPointsMessage]);
+        }
+      } else {
+        // 🔍 조건 미충족 디버깅
+        console.log('=== 포인트 조건 미충족 ===');
+        console.log('user:', !!user);
+        console.log('imageFile:', !!imageFile);
+        console.log('response.imageAnalysis:', !!response.imageAnalysis);
+        console.log('========================');
+      }
+
     } catch (error) {
       const errorMessage = {
         id: Date.now() + 1,
@@ -450,7 +352,10 @@ ${errorMessage}
       <div className="chatbot-container">
         <div className="chatbot-header">
           <h1>🕳️ 싱크홀 신고 도우미</h1>
-          <p>사진 업로드시 AI가 자동으로 싱크홀을 분석해드립니다!</p>
+          <p>
+            사진 업로드시 AI가 자동으로 싱크홀을 분석해드립니다!
+            
+          </p>
         </div>
 
         <div className="chat-messages" ref={chatContainerRef}>
@@ -463,6 +368,11 @@ ${errorMessage}
                 {message.image && (
                   <div className="message-image">
                     <img src={message.image} alt="첨부 이미지" />
+                    {compressionInfo && (
+                      <div className="compression-info">
+                        압축: {compressionInfo.original}MB → {compressionInfo.compressed}MB ({compressionInfo.ratio}% 감소)
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="message-text">
@@ -474,27 +384,42 @@ ${errorMessage}
                   ))}
                 </div>
                 
+                {/* 🆕 포인트 적립 버튼 (싱크홀 판정 시에만) */}
+                {message.showPointsButton && user && (
+                  <div className="points-action">
+                    <button 
+                      className="points-claim-btn sinkhole-detected"
+                      onClick={claimSinkholeReportPoints}
+                    >
+                      🚨 싱크홀 신고 포인트 받기 (+10P)
+                    </button>
+                    <p className="points-note">
+                      ※ AI가 싱크홀로 판정한 경우에만 포인트가 지급됩니다 (하루 1회)
+                    </p>
+                  </div>
+                )}
+                
                 {/* 이미지 분석 결과 표시 */}
-                {message.analysisData && (
+                {message.imageAnalysis && (
                   <div className="analysis-details">
                     <div className="analysis-summary">
                       <h4>🔍 AI 분석 결과</h4>
                       <div className="analysis-metrics">
-                        <span className={`confidence-badge ${message.analysisData.risk_level}`}>
-                          확률: {message.analysisData.confidence_percent}%
+                        <span className={`confidence-badge ${message.imageAnalysis.risk_level || 'low'}`}>
+                          확률: {message.imageAnalysis.confidence_percent || 0}%
                         </span>
-                        <span className={`risk-badge ${message.analysisData.risk_level}`}>
-                          위험도: {message.analysisData.risk_level.toUpperCase()}
+                        <span className={`risk-badge ${message.imageAnalysis.risk_level || 'low'}`}>
+                          위험도: {(message.imageAnalysis.risk_level || 'low').toUpperCase()}
                         </span>
                       </div>
                     </div>
-                    {message.analysisData.predictions && message.analysisData.predictions.length > 0 && (
+                    {message.imageAnalysis.predictions && message.imageAnalysis.predictions.length > 0 && (
                       <div className="detection-list">
                         <h5>탐지된 객체:</h5>
-                        {message.analysisData.predictions.map((pred, idx) => (
+                        {message.imageAnalysis.predictions.map((pred, idx) => (
                           <div key={idx} className="detection-item">
-                            <span className="tag-name">{pred.tag_name}</span>
-                            <span className="confidence">{pred.confidence_percent.toFixed(1)}%</span>
+                            <span className="tag-name">{pred.tag_name || '알 수 없음'}</span>
+                            <span className="confidence">{(pred.confidence_percent || 0).toFixed(1)}%</span>
                           </div>
                         ))}
                       </div>
@@ -523,7 +448,7 @@ ${errorMessage}
                        message.source === '싱크홀 AI 분석' ? '🤖 AI분석' :
                        message.source === '분석 오류' ? '❌ 오류' :
                        message.source === '연결 오류' ? '⚠️ 연결오류' :
-                       message.source === '오류' ? '❌ 오류' : '🤖 AI'}
+                       message.source === '오류' ? '❌ 오류' : message.source}
                     </span>
                   )}
                 </div>
@@ -540,87 +465,59 @@ ${errorMessage}
                   <span></span>
                   <span></span>
                 </div>
+                {analysisResult && (
+                  <div className="analysis-status">
+                    {analysisResult.message}
+                  </div>
+                )}
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} />
         </div>
 
-        {/* 빠른 질문 버튼들 */}
-        {messages.length === 1 && (
-          <div className="quick-questions">
-            <p>자주 묻는 질문:</p>
-            <div className="quick-question-buttons">
-              {quickQuestions.map((question, index) => (
-                <button
-                  key={index}
-                  className="quick-question-btn"
-                  onClick={() => handleQuickQuestion(question)}
-                >
-                  {question}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 이미지 미리보기 및 분석 상태 */}
-        {previewImage && (
-          <div className="image-preview">
-            <div className="preview-container">
-              <img src={previewImage} alt="업로드 예정 이미지" />
-              <button className="remove-image-btn" onClick={handleImageCancel}>
-                ✕
+        {/* 미리 정의된 질문들 */}
+        <div className="quick-questions">
+          <h3>💡 자주 묻는 질문</h3>
+          <div className="question-buttons">
+            {quickQuestions.map((question, index) => (
+              <button
+                key={index}
+                className="quick-question-btn"
+                onClick={() => handleQuickQuestion(question)}
+              >
+                {question}
               </button>
-              
-              {/* 🆕 압축 진행 상태 표시 */}
-              {isCompressing && (
-                <div className="analysis-overlay">
-                  <div className="analysis-spinner"></div>
-                  <span>이미지를 압축하고 있습니다...</span>
-                </div>
-              )}
-              
-              {/* 분석 진행 상태 표시 */}
-              {isAnalyzing && !isCompressing && (
-                <div className="analysis-overlay">
-                  <div className="analysis-spinner"></div>
-                  <span>AI가 이미지를 분석하고 있습니다...</span>
-                </div>
-              )}
-              
-              {/* 🆕 압축 정보 표시 */}
-              {compressionInfo && !isCompressing && !isAnalyzing && (
-                <div className="compression-info">
-                  <div className="compression-badge">
-                    🗜️ 압축됨<br />
-                    <small>{compressionInfo.originalSizeMB}MB → {compressionInfo.compressedSizeMB}MB</small>
-                  </div>
-                </div>
-              )}
-              
-              {/* 분석 결과 미리보기 */}
-              {analysisResult && !isAnalyzing && !isCompressing && (
-                <div className="analysis-preview">
-                  <div className={`analysis-badge ${analysisResult.risk_level}`}>
-                    {analysisResult.is_sinkhole && analysisResult.confidence >= 70 ? 
-                      '🚨 싱크홀 탐지!' : 
-                      analysisResult.confidence >= 50 ? 
-                      '🤔 불확실' : 
-                      '✅ 정상'
-                    }
-                    <br />
-                    <small>{analysisResult.confidence_percent.toFixed(1)}%</small>
-                  </div>
-                </div>
-              )}
-            </div>
+            ))}
           </div>
-        )}
+        </div>
 
         {/* 입력 영역 */}
-        <div className="chat-input-container">
-          <div className="input-row">
+        <div className="chat-input-area">
+          {previewImage && (
+            <div className="image-preview">
+              <img src={previewImage} alt="미리보기" />
+              {compressionInfo && (
+                <div className="compression-info">
+                  📉 압축: {compressionInfo.original}MB → {compressionInfo.compressed}MB
+                </div>
+              )}
+              <button 
+                className="remove-image-btn"
+                onClick={() => {
+                  setSelectedImage(null);
+                  setPreviewImage(null);
+                  setCompressionInfo(null);
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                  }
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          
+          <div className="input-container">
             <input
               type="file"
               ref={fileInputRef}
@@ -632,36 +529,69 @@ ${errorMessage}
             <button
               className="image-upload-btn"
               onClick={() => fileInputRef.current?.click()}
-              title="이미지 첨부 (AI 자동 분석)"
-              disabled={isAnalyzing || isCompressing} // 🆕 압축 중에도 비활성화
+              disabled={isLoading}
+              title="이미지 업로드 (최대 10MB)"
             >
-              {isCompressing ? '🗜️' : isAnalyzing ? '🔍' : '📷'}
+              📷
             </button>
-
+            
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="싱크홀 관련 질문을 입력하거나 사진을 첨부해주세요..."
-              className="chat-input"
-              rows="1"
+              placeholder={selectedImage ? "이미지에 대해 질문하세요..." : "싱크홀에 대해 질문하거나 이미지를 업로드하세요..."}
               disabled={isLoading}
+              className="chat-input"
+              rows="2"
             />
-
+            
             <button
               onClick={handleSendMessage}
-              disabled={(!inputText.trim() && !selectedImage) || isLoading}
+              disabled={isLoading || (!inputText.trim() && !selectedImage)}
               className="send-btn"
+              title="메시지 전송 (Enter)"
             >
               {isLoading ? '⏳' : '📤'}
             </button>
           </div>
-          
-          <div className="input-help">
-            💡 사진을 업로드하면 AI가 자동으로 싱크홀 여부를 분석합니다 (JPG, PNG, 자동 압축 지원)
-          </div>
         </div>
       </div>
+
+      {/* 🆕 포인트 적립 성공 모달 */}
+      {showPointsModal && (
+        <div className="points-modal-overlay" onClick={() => setShowPointsModal(false)}>
+          <div className="points-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="points-modal-header">
+              <h2>🎉 포인트 적립 완료!</h2>
+            </div>
+            <div className="points-modal-content">
+              <div className="points-amount">
+                <span className="points-number">+{pointsEarned}</span>
+                <span className="points-label">포인트</span>
+              </div>
+              <p>싱크홀 신고로 포인트를 받으셨습니다!</p>
+              <p className="points-note">하루에 한 번만 포인트를 받을 수 있습니다.</p>
+            </div>
+            <div className="points-modal-actions">
+              <button 
+                className="close-modal-btn"
+                onClick={() => setShowPointsModal(false)}
+              >
+                확인
+              </button>
+              <button 
+                className="view-points-btn"
+                onClick={() => {
+                  setShowPointsModal(false);
+                  window.location.href = '/points';
+                }}
+              >
+                포인트 확인하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -24,6 +24,10 @@ class User(Base):
 
     predictions = relationship("RiskPrediction", back_populates="user", cascade="all, delete-orphan")
 
+    # 기존 predictions 줄 아래에 추가
+    points = relationship("UserPoints", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    point_history = relationship("PointHistory", back_populates="user", cascade="all, delete-orphan")
+
 class Location(Base):
     __tablename__ = "locations"
     
@@ -46,3 +50,28 @@ class RiskPrediction(Base):
     
     # 관계
     user = relationship("User", back_populates="predictions")
+
+class UserPoints(Base):
+    __tablename__ = "user_points"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    points = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 관계 설정
+    user = relationship("User", back_populates="points")
+
+class PointHistory(Base):
+    __tablename__ = "point_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    point_type = Column(String(50), nullable=False)  # "sinkhole_report", "walking_route"
+    points_earned = Column(Integer, nullable=False)
+    description = Column(Text)
+    earned_at = Column(DateTime, default=datetime.utcnow)
+    
+    # 관계 설정
+    user = relationship("User", back_populates="point_history")
