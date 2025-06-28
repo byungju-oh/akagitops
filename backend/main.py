@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException, status, File, Form, UploadF
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import and_
 from typing import List, Optional, Dict, Any
 import uvicorn
 from datetime import datetime, timedelta
@@ -3662,6 +3663,7 @@ class WalkingRouteComplete(BaseModel):
     start_longitude: float
     destination_latitude: float
     destination_longitude: float
+    route_name: Optional[str] = None  # 추천 산책 코스 이름
 
 @app.post("/api/points/walking-route")
 async def add_walking_route_points(
@@ -3669,65 +3671,140 @@ async def add_walking_route_points(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """추천 산책경로 완주 포인트 추가"""
+    """추천 산책경로 완주 포인트 추가 - 하루에 한 번만 지급"""
     
-    # GPS 위치 검증 로직 (실제로는 더 정밀한 검증 필요)
-    # 시작점과 목적지 거리 계산
-    from math import radians, cos, sin, asin, sqrt
-    
-    def haversine(lon1, lat1, lon2, lat2):
-        """두 GPS 좌표 간의 거리 계산 (km)"""
-        lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
-        dlon = lon2 - lon1
-        dlat = lat2 - lat1
-        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-        c = 2 * asin(sqrt(a))
-        r = 6371  # 지구 반지름 (km)
-        return c * r
-    
-    distance = haversine(
-        route_data.start_longitude, 
-        route_data.start_latitude,
-        route_data.destination_longitude, 
-        route_data.destination_latitude
-    )
-    
-    # 최소 거리 요구사항 (예: 0.5km 이상)
-    if distance < 0.5:
-        raise HTTPException(status_code=400, detail="산책 거리가 너무 짧습니다. (최소 0.5km)")
-    
-    # 포인트 추가
-    points_to_add = 10
-    
-    # 사용자 포인트 테이블 확인/생성
-    user_points = db.query(UserPoints).filter(UserPoints.user_id == current_user.id).first()
-    if not user_points:
-        user_points = UserPoints(user_id=current_user.id, points=0)
-        db.add(user_points)
-    
-    # 포인트 추가
-    user_points.points += points_to_add
-    user_points.updated_at = datetime.utcnow()
-    
-    # 포인트 히스토리 추가
-    point_history = PointHistory(
-        user_id=current_user.id,
-        point_type="walking_route",
-        points_earned=points_to_add,
-        description=f"산책경로 완주 ({distance:.2f}km)"
-    )
-    
-    db.add(point_history)
-    db.commit()
-    
-    return {
-        "message": "산책경로 완주 포인트가 지급되었습니다",
-        "points_earned": points_to_add,
-        "distance_completed": f"{distance:.2f}km",
-        "total_points": user_points.points
-    }
+    try:
+        # 1. 오늘 이미 산책 포인트를 받았는지 확인
+        today = date.today()
+        existing_point = db.query(PointHistory).filter(
+            and_(
+                PointHistory.user_id == current_user.id,
+                PointHistory.point_type == "walking_route",
+                PointHistory.created_at >= today
+            )
+        ).first()
+        
+        if existing_point:
+            raise HTTPException(
+                status_code=400, 
+                detail="오늘 이미 산책 완주 포인트를 받으셨습니다. 내일 다시 도전해보세요!"
+            )
+        
+        # 2. GPS 위치 검증 로직
+        from math import radians, cos, sin, asin, sqrt
+        
+        def haversine(lon1, lat1, lon2, lat2):
+            """두 GPS 좌표 간의 거리 계산 (km)"""
+            lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+            dlon = lon2 - lon1
+            dlat = lat2 - lat1
+            a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+            c = 2 * asin(sqrt(a))
+            r = 6371  # 지구 반지름 (km)
+            return c * r
+        
+        distance = haversine(
+            route_data.start_longitude, 
+            route_data.start_latitude,
+            route_data.destination_longitude, 
+            route_data.destination_latitude
+        )
+        
+        # 3. 최소 거리 요구사항 (0.5km 이상)
+        if distance < 0.5:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"산책 거리가 너무 짧습니다. (현재: {distance:.2f}km, 최소: 0.5km)"
+            )
+        
+        # 4. 최대 거리 요구사항 (10km 이하)
+        if distance > 10:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"산책 거리가 너무 깁니다. (현재: {distance:.2f}km, 최대: 10km)"
+            )
+        
+        # 5. 포인트 지급
+        points_to_add = 10
+        
+        # 사용자 포인트 테이블 확인/생성
+        user_points = db.query(UserPoints).filter(UserPoints.user_id == current_user.id).first()
+        if not user_points:
+            user_points = UserPoints(user_id=current_user.id, points=0)
+            db.add(user_points)
+        
+        # 포인트 추가
+        user_points.points += points_to_add
+        user_points.updated_at = datetime.utcnow()
+        
+        # 포인트 히스토리 추가
+        route_description = f"산책 완주 ({distance:.2f}km)"
+        if route_data.route_name:
+            route_description += f" - {route_data.route_name}"
+            
+        point_history = PointHistory(
+            user_id=current_user.id,
+            point_type="walking_route",
+            points_earned=points_to_add,
+            description=route_description
+        )
+        
+        db.add(point_history)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"🎉 산책 완주 포인트 {points_to_add}점이 지급되었습니다!",
+            "points_earned": points_to_add,
+            "total_points": user_points.points,
+            "distance_completed": f"{distance:.2f}km",
+            "next_available": "내일"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"산책 포인트 지급 오류: {e}")
+        raise HTTPException(status_code=500, detail="포인트 지급 중 오류가 발생했습니다.")
 
 
+# 사용자의 오늘 산책 포인트 수령 여부 확인 API
+@app.get("/api/points/walking-route/status")
+async def check_walking_points_status(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """오늘 산책 포인트 수령 가능 여부 확인"""
+    
+    try:
+        today = date.today()
+        existing_point = db.query(PointHistory).filter(
+            and_(
+                PointHistory.user_id == current_user.id,
+                PointHistory.point_type == "walking_route",
+                PointHistory.created_at >= today
+            )
+        ).first()
+        
+        if existing_point:
+            return {
+                "can_earn_today": False,
+                "message": "오늘 이미 산책 포인트를 받으셨습니다.",
+                "earned_at": existing_point.created_at.isoformat(),
+                "points_earned": existing_point.points_earned,
+                "next_available": "내일"
+            }
+        else:
+            return {
+                "can_earn_today": True,
+                "message": "오늘 산책 완주 시 10포인트를 받을 수 있습니다!",
+                "points_available": 10,
+                "requirements": "출발지와 도착지에서 GPS 체크 후 0.5km 이상 완주"
+            }
+            
+    except Exception as e:
+        logger.error(f"산책 포인트 상태 확인 오류: {e}")
+        raise HTTPException(status_code=500, detail="상태 확인 중 오류가 발생했습니다.")
 # =============================================================================
 # 개발용 테스트 엔드포인트 (통합)
 # =============================================================================

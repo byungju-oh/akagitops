@@ -113,3 +113,15 @@
     font-size: 14px !important;
   }
 }
+
+.nav-link.report-link {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+  color: white !important;
+  padding: 8px 15px;
+  border-radius: 20px;
+  white-space: nowrap;
+  min-width: 116px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+ 
