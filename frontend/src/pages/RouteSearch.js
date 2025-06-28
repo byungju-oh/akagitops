@@ -82,7 +82,7 @@ const RouteSearch = () => {
     
     try {
       console.log('📡 API 호출 시작: /exercise-areas');
-      const response = await axios.get('/exercise-areas');
+      const response = await axios.get('/api/exercise-areas');
       console.log('✅ API 응답 받음:', response);
       console.log('📊 응답 데이터:', response.data);
       

@@ -2690,7 +2690,7 @@ async def calculate_steps_for_distance(request: StepsCalculatorRequest):
         raise HTTPException(status_code=400, detail=f"계산 오류: {str(e)}")
 
 
-@app.get("/exercise-areas")
+@app.get("/api/exercise-areas")
 async def get_exercise_areas():
     """서울시 추천 운동 지역 목록 (완전히 수정된 버전)"""
     try:
