@@ -46,6 +46,7 @@ from schemas import (
     RouteStep,
     RouteWaypoint,
     GeocodeResponse,
+    UserAgreements
 )
 from auth import (
     get_password_hash,
@@ -100,8 +101,7 @@ except ImportError as e:
 
     destination_processor = MockDestinationProcessor()
 
-# 데이터베이스 테이블 생성
-Base.metadata.create_all(bind=engine)
+
 
 # FastAPI 앱 초기화
 app = FastAPI(
@@ -230,19 +230,165 @@ class StepsCalculatorResponse(BaseModel):
 # =============================================================================
 
 # 서울시 더미 위험지역 데이터
-DUMMY_RISK_ZONES = [
-    {"lat": 37.5665, "lng": 126.9780, "risk": 0.85, "name": "중구 명동"},
-    {"lat": 37.5663, "lng": 126.9779, "risk": 0.90, "name": "중구 명동 인근"},
-    {"lat": 37.5519, "lng": 126.9918, "risk": 0.78, "name": "강남구 논현동"},
-    {"lat": 37.5172, "lng": 127.0473, "risk": 0.82, "name": "강남구 삼성동"},
-    {"lat": 37.5794, "lng": 126.9770, "risk": 0.75, "name": "종로구 종로1가"},
-    {"lat": 37.5512, "lng": 126.9882, "risk": 0.88, "name": "서초구 서초동"},
-    {"lat": 37.5326, "lng": 126.9026, "risk": 0.73, "name": "영등포구 여의도동"},
-    {"lat": 37.5833, "lng": 127.0022, "risk": 0.79, "name": "성북구 성북동"},
-    {"lat": 37.5145, "lng": 127.1059, "risk": 0.81, "name": "송파구 잠실동"},
-    {"lat": 37.4955, "lng": 126.8874, "risk": 0.76, "name": "구로구 구로동"},
+RISK_ZONES = [
+  {"lat": 37.5403, "lng": 127.0699, "risk": 0.94, "name": "광진구 건대입구역 일대"},
+  {"lat": 37.5350, "lng": 127.0650, "risk": 0.90, "name": "광진구 화양동"},
+  {"lat": 37.5450, "lng": 127.0750, "risk": 0.87, "name": "광진구 군자동"},
+  {"lat": 37.5380, "lng": 127.0680, "risk": 0.91, "name": "광진구 자양동"},
+  {"lat": 37.5320, "lng": 127.0720, "risk": 0.88, "name": "광진구 광장동"},
+  {"lat": 37.5420, "lng": 127.0800, "risk": 0.85, "name": "광진구 구의동"},
+  {"lat": 37.5370, "lng": 127.0770, "risk": 0.89, "name": "광진구 중곡동"},
+  {"lat": 37.5410, "lng": 127.0720, "risk": 0.84, "name": "광진구 능동"},
+  {"lat": 37.5360, "lng": 127.0730, "risk": 0.86, "name": "광진구 세종대 인근"},
+  {"lat": 37.5390, "lng": 127.0810, "risk": 0.83, "name": "광진구 뚝섬역 인근"},
+  {"lat": 37.5500, "lng": 127.0700, "risk": 0.87, "name": "광진구 건국대"},
+  {"lat": 37.5330, "lng": 127.0750, "risk": 0.85, "name": "광진구 세종대"},
+  
+  {"lat": 37.5703, "lng": 126.9925, "risk": 0.93, "name": "종로구 종로3가"},
+  {"lat": 37.5794, "lng": 126.9770, "risk": 0.91, "name": "종로구 종로1가"},
+  {"lat": 37.5665, "lng": 126.9780, "risk": 0.92, "name": "종로구 을지로입구"},
+  {"lat": 37.5734, "lng": 126.9910, "risk": 0.90, "name": "종로구 종로2가"},
+  {"lat": 37.5650, "lng": 126.9850, "risk": 0.89, "name": "종로구 을지로"},
+  {"lat": 37.5760, "lng": 126.9830, "risk": 0.87, "name": "종로구 안국동"},
+  {"lat": 37.5720, "lng": 126.9880, "risk": 0.88, "name": "종로구 인사동"},
+  {"lat": 37.5690, "lng": 126.9950, "risk": 0.86, "name": "종로구 종로4가"},
+  {"lat": 37.5973, "lng": 126.9613, "risk": 0.84, "name": "종로구 부암동"},
+  {"lat": 37.5750, "lng": 126.9770, "risk": 0.89, "name": "종로구 광화문"},
+  {"lat": 37.5550, "lng": 126.9720, "risk": 0.88, "name": "종로구 창신동"},
+  {"lat": 37.5680, "lng": 126.9940, "risk": 0.89, "name": "종로구 낙원동"},
+  
+  {"lat": 37.4830, "lng": 126.9030, "risk": 0.88, "name": "금천구 가산동"},
+  {"lat": 37.4760, "lng": 126.8980, "risk": 0.86, "name": "금천구 독산동"},
+  {"lat": 37.4680, "lng": 126.9050, "risk": 0.84, "name": "금천구 시흥동"},
+  {"lat": 37.4900, "lng": 126.9100, "risk": 0.87, "name": "금천구 금천구청역"},
+  {"lat": 37.4720, "lng": 126.9020, "risk": 0.85, "name": "금천구 독산역"},
+  {"lat": 37.4850, "lng": 126.9080, "risk": 0.89, "name": "금천구 가산디지털단지역"},
+  {"lat": 37.4780, "lng": 126.9130, "risk": 0.83, "name": "금천구 남구로역"},
+  {"lat": 37.4950, "lng": 126.8650, "risk": 0.87, "name": "금천구 독산동 저지대"},
+  {"lat": 37.4800, "lng": 126.8900, "risk": 0.85, "name": "금천구 철산동"},
+  
+  {"lat": 37.5172, "lng": 127.0473, "risk": 0.95, "name": "강남구 삼성동 (언주로)"},
+  {"lat": 37.5045, "lng": 127.0495, "risk": 0.93, "name": "강남구 선릉역 (선릉로)"},
+  {"lat": 37.5519, "lng": 126.9918, "risk": 0.91, "name": "강남구 논현동"},
+  {"lat": 37.4979, "lng": 127.0276, "risk": 0.89, "name": "강남구 강남역"},
+  {"lat": 37.4887, "lng": 127.0332, "risk": 0.88, "name": "강남구 도곡동"},
+  {"lat": 37.5140, "lng": 127.0590, "risk": 0.87, "name": "강남구 청담동"},
+  {"lat": 37.5270, "lng": 127.0530, "risk": 0.91, "name": "강남구 역삼동"},
+  {"lat": 37.4980, "lng": 127.0280, "risk": 0.90, "name": "강남구 개포동"},
+  {"lat": 37.5300, "lng": 127.0700, "risk": 0.87, "name": "강남구 대치동"},
+  {"lat": 37.5100, "lng": 127.0400, "risk": 0.86, "name": "강남구 신사동"},
+  
+  {"lat": 37.5309, "lng": 127.1238, "risk": 0.97, "name": "강동구 명일동 (대명초교 사거리)"},
+  {"lat": 37.5145, "lng": 127.1059, "risk": 0.90, "name": "강동구 잠실동"},
+  {"lat": 37.5582, "lng": 127.1581, "risk": 0.87, "name": "강동구 고덕동"},
+  {"lat": 37.5400, "lng": 127.1350, "risk": 0.85, "name": "강동구 천호동"},
+  {"lat": 37.5280, "lng": 127.1080, "risk": 0.88, "name": "강동구 길동"},
+  {"lat": 37.5250, "lng": 127.1100, "risk": 0.92, "name": "강동구 암사동"},
+  {"lat": 37.5450, "lng": 127.1200, "risk": 0.88, "name": "강동구 둔촌동"},
+  
+  {"lat": 37.4855, "lng": 127.0162, "risk": 0.92, "name": "서초구 서초동"},
+  {"lat": 37.4701, "lng": 127.0326, "risk": 0.88, "name": "서초구 양재동"},
+  {"lat": 37.5080, "lng": 127.0035, "risk": 0.86, "name": "서초구 잠원동"},
+  {"lat": 37.4842, "lng": 127.0033, "risk": 0.87, "name": "서초구 반포동"},
+  {"lat": 37.5050, "lng": 127.0050, "risk": 0.89, "name": "서초구 고속터미널"},
+  {"lat": 37.4900, "lng": 127.0200, "risk": 0.85, "name": "서초구 방배동"},
+  
+  {"lat": 37.5134, "lng": 127.1000, "risk": 0.89, "name": "송파구 잠실역"},
+  {"lat": 37.5048, "lng": 127.1146, "risk": 0.87, "name": "송파구 석촌동"},
+  {"lat": 37.4996, "lng": 127.1265, "risk": 0.85, "name": "송파구 방이동"},
+  {"lat": 37.5050, "lng": 127.0890, "risk": 0.88, "name": "송파구 신천동"},
+  {"lat": 37.4800, "lng": 127.0900, "risk": 0.90, "name": "송파구 가락동"},
+  {"lat": 37.5150, "lng": 127.0850, "risk": 0.88, "name": "송파구 압구정동"},
+  
+  {"lat": 37.5617, "lng": 127.0363, "risk": 0.90, "name": "성동구 행당동"},
+  {"lat": 37.5456, "lng": 127.0374, "risk": 0.87, "name": "성동구 성수동"},
+  {"lat": 37.5584, "lng": 127.0280, "risk": 0.89, "name": "성동구 왕십리"},
+  {"lat": 37.5500, "lng": 127.0400, "risk": 0.86, "name": "성동구 금고동"},
+  
+  {"lat": 37.4955, "lng": 126.8874, "risk": 0.89, "name": "구로구 구로동"},
+  {"lat": 37.5009, "lng": 126.8843, "risk": 0.87, "name": "구로구 남구로역"},
+  {"lat": 37.4988, "lng": 126.8877, "risk": 0.88, "name": "구로구 신도림동"},
+  {"lat": 37.5200, "lng": 126.8900, "risk": 0.89, "name": "구로구 개봉동"},
+  {"lat": 37.4850, "lng": 126.8500, "risk": 0.87, "name": "구로구 고척동"},
+  {"lat": 37.4900, "lng": 126.8300, "risk": 0.86, "name": "구로구 항동"},
+  
+  {"lat": 37.6206, "lng": 127.0838, "risk": 0.86, "name": "노원구 공릉동"},
+  {"lat": 37.6544, "lng": 127.0568, "risk": 0.84, "name": "노원구 상계동"},
+  {"lat": 37.6400, "lng": 127.0700, "risk": 0.83, "name": "노원구 중계동"},
+  {"lat": 37.6300, "lng": 127.0600, "risk": 0.82, "name": "노원구 월계동"},
+  
+  {"lat": 37.5574, "lng": 126.9240, "risk": 0.87, "name": "마포구 홍대입구"},
+  {"lat": 37.5558, "lng": 126.9364, "risk": 0.85, "name": "마포구 신촌"},
+  {"lat": 37.5219, "lng": 126.9245, "risk": 0.86, "name": "마포구 여의도"},
+  {"lat": 37.5320, "lng": 126.9000, "risk": 0.87, "name": "마포구 합정동"},
+  {"lat": 37.5400, "lng": 126.9100, "risk": 0.84, "name": "마포구 상암동"},
+  
+  {"lat": 37.5665, "lng": 126.9780, "risk": 0.94, "name": "중구 명동"},
+  {"lat": 37.5665, "lng": 126.9780, "risk": 0.92, "name": "중구 시청"},
+  {"lat": 37.5711, "lng": 127.0099, "risk": 0.90, "name": "중구 동대문"},
+  {"lat": 37.5636, "lng": 126.9826, "risk": 0.91, "name": "중구 명동성당"},
+  {"lat": 37.5480, "lng": 127.0050, "risk": 0.87, "name": "중구 황학동"},
+  {"lat": 37.5600, "lng": 126.9700, "risk": 0.88, "name": "중구 회현동"},
+  
+  {"lat": 37.5219, "lng": 126.9245, "risk": 0.88, "name": "영등포구 여의도동"},
+  {"lat": 37.5239, "lng": 126.8853, "risk": 0.86, "name": "영등포구 양평동"},
+  {"lat": 37.5150, "lng": 126.9070, "risk": 0.85, "name": "영등포구 영등포동"},
+  {"lat": 37.5000, "lng": 126.9250, "risk": 0.91, "name": "영등포구 신도림"},
+  {"lat": 37.5150, "lng": 126.8950, "risk": 0.88, "name": "영등포구 문래동"},
+  
+  {"lat": 37.5347, "lng": 126.9947, "risk": 0.87, "name": "용산구 이태원동"},
+  {"lat": 37.5326, "lng": 126.9660, "risk": 0.85, "name": "용산구 용산역"},
+  {"lat": 37.5290, "lng": 126.9970, "risk": 0.86, "name": "용산구 한남동"},
+  {"lat": 37.5400, "lng": 127.0060, "risk": 0.90, "name": "용산구 용산"},
+  {"lat": 37.5380, "lng": 126.9720, "risk": 0.86, "name": "용산구 후암동"},
+  
+  {"lat": 37.5833, "lng": 127.0022, "risk": 0.86, "name": "성북구 성북동"},
+  {"lat": 37.5846, "lng": 127.0289, "risk": 0.84, "name": "성북구 안암동"},
+  {"lat": 37.6020, "lng": 127.0170, "risk": 0.83, "name": "성북구 정릉동"},
+  {"lat": 37.5820, "lng": 127.0120, "risk": 0.86, "name": "성북구 길음동"},
+  {"lat": 37.6000, "lng": 127.0250, "risk": 0.86, "name": "성북구 정릉동"},
+  
+  {"lat": 37.5667, "lng": 127.0568, "risk": 0.87, "name": "동대문구 답십리동"},
+  {"lat": 37.5800, "lng": 127.0410, "risk": 0.85, "name": "동대문구 청량리동"},
+  {"lat": 37.5790, "lng": 127.0580, "risk": 0.84, "name": "동대문구 전농동"},
+  {"lat": 37.5580, "lng": 127.0100, "risk": 0.88, "name": "동대문구 청량리"},
+  
+  {"lat": 37.5700, "lng": 126.9320, "risk": 0.90, "name": "서대문구 연희동"},
+  {"lat": 37.5658, "lng": 126.9397, "risk": 0.86, "name": "서대문구 신촌동"},
+  {"lat": 37.5790, "lng": 126.9360, "risk": 0.84, "name": "서대문구 홍제동"},
+  {"lat": 37.5600, "lng": 126.9400, "risk": 0.85, "name": "서대문구 대신동"},
+  
+  {"lat": 37.6496, "lng": 127.0202, "risk": 0.88, "name": "강북구 수유동"},
+  {"lat": 37.6359, "lng": 127.0294, "risk": 0.86, "name": "강북구 미아동"},
+  {"lat": 37.6202, "lng": 127.0443, "risk": 0.84, "name": "강북구 번동"},
+  {"lat": 37.6100, "lng": 127.0300, "risk": 0.86, "name": "강북구 우이동"},
+  
+  {"lat": 37.6597, "lng": 127.0498, "risk": 0.85, "name": "도봉구 창동"},
+  {"lat": 37.6700, "lng": 127.0470, "risk": 0.83, "name": "도봉구 도봉동"},
+  {"lat": 37.6600, "lng": 127.0400, "risk": 0.84, "name": "도봉구 쌍문동"},
+  
+  {"lat": 37.4864, "lng": 126.9286, "risk": 0.87, "name": "관악구 신림동"},
+  {"lat": 37.4700, "lng": 126.9160, "risk": 0.85, "name": "관악구 봉천동"},
+  {"lat": 37.4650, "lng": 126.9400, "risk": 0.85, "name": "관악구 신림동"},
+  
+  {"lat": 37.5996, "lng": 126.9275, "risk": 0.83, "name": "은평구 대조동"},
+  {"lat": 37.6180, "lng": 126.9220, "risk": 0.82, "name": "은평구 수색동"},
+  {"lat": 37.5900, "lng": 126.9500, "risk": 0.85, "name": "은평구 불광동"},
+  {"lat": 37.6200, "lng": 126.9800, "risk": 0.85, "name": "은평구 진관동"},
+  
+  {"lat": 37.5509, "lng": 126.8495, "risk": 0.86, "name": "양천구 목동"},
+  {"lat": 37.5280, "lng": 126.8540, "risk": 0.84, "name": "양천구 신정동"},
+  {"lat": 37.5200, "lng": 126.8600, "risk": 0.87, "name": "양천구 오목교"},
+  
+  {"lat": 37.5584, "lng": 126.8349, "risk": 0.84, "name": "강서구 화곡동"},
+  {"lat": 37.5630, "lng": 126.8010, "risk": 0.85, "name": "강서구 방화동"},
+  {"lat": 37.5600, "lng": 126.8100, "risk": 0.86, "name": "강서구 마곡동"},
+  {"lat": 37.5100, "lng": 126.8200, "risk": 0.89, "name": "강서구 공항동"},
+  
+  {"lat": 37.5158, "lng": 126.9408, "risk": 0.85, "name": "동작구 노량진동"},
+  {"lat": 37.5050, "lng": 126.9390, "risk": 0.83, "name": "동작구 상도동"},
+  {"lat": 37.5000, "lng": 126.9200, "risk": 0.84, "name": "동작구 신대방동"}
 ]
-
 # 오픈 소스 라우팅 서비스
 OSRM_BASE_URL = "https://router.project-osrm.org"
 NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org"
@@ -1338,6 +1484,7 @@ walking_service = WalkingRouteService()
 @app.on_event("startup")
 async def startup_event():
     """앱 시작 시 실행"""
+    Base.metadata.create_all(bind=engine)
     print("🚀 Seoul Safety Navigation API 시작")
     print("🗺️ 도보 경로 서비스 초기화 완료")
     print("🎤 Azure Speech Service 준비 완료")
@@ -1357,23 +1504,83 @@ async def shutdown_event():
 
 @app.post("/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    """사용자 회원가입"""
+    """사용자 회원가입 - 약관동의 포함"""
+    
+    # 이메일 중복 체크
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="이미 등록된 이메일입니다.")
-
+    
+    # 필수 약관 동의 확인
+    if not user.agreements.serviceTerms or not user.agreements.privacyPolicy or not user.agreements.locationConsent:
+        raise HTTPException(status_code=400, detail="필수 약관에 모두 동의해주세요.")
+    
+    # 비밀번호 해시화
     hashed_password = get_password_hash(user.password)
-    db_user = User(username=user.username, email=user.email, password=hashed_password)
+    
+    # 사용자 생성
+    db_user = User(
+        username=user.name,  # name을 username으로 저장
+        email=user.email,
+        password=hashed_password,
+        service_terms_agreed=user.agreements.serviceTerms,
+        privacy_policy_agreed=user.agreements.privacyPolicy,
+        location_consent_agreed=user.agreements.locationConsent,
+        marketing_consent_agreed=user.agreements.marketingConsent,
+        terms_agreed_at=datetime.utcnow()
+    )
+    
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-
+    
     return UserResponse(
         id=db_user.id,
         username=db_user.username,
         email=db_user.email,
         created_at=db_user.created_at.isoformat(),
+        service_terms_agreed=db_user.service_terms_agreed,
+        privacy_policy_agreed=db_user.privacy_policy_agreed,
+        location_consent_agreed=db_user.location_consent_agreed,
+        marketing_consent_agreed=db_user.marketing_consent_agreed,
+        terms_agreed_at=db_user.terms_agreed_at.isoformat()
     )
+
+# 약관동의 조회 API 추가
+@app.get("/api/user/agreements", response_model=UserAgreements)
+def get_user_agreements(current_user: User = Depends(get_current_user)):
+    """사용자 약관동의 정보 조회"""
+    return UserAgreements(
+        serviceTerms=current_user.service_terms_agreed,
+        privacyPolicy=current_user.privacy_policy_agreed,
+        locationConsent=current_user.location_consent_agreed,
+        marketingConsent=current_user.marketing_consent_agreed
+    )
+
+# 약관동의 업데이트 API 추가
+@app.put("/api/user/agreements")
+def update_user_agreements(
+    agreements: UserAgreements,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """사용자 약관동의 정보 업데이트"""
+    
+    # 필수 약관 동의 확인
+    if not agreements.serviceTerms or not agreements.privacyPolicy or not agreements.locationConsent:
+        raise HTTPException(status_code=400, detail="필수 약관에 모두 동의해주세요.")
+    
+    # 약관동의 정보 업데이트
+    current_user.service_terms_agreed = agreements.serviceTerms
+    current_user.privacy_policy_agreed = agreements.privacyPolicy
+    current_user.location_consent_agreed = agreements.locationConsent
+    current_user.marketing_consent_agreed = agreements.marketingConsent
+    current_user.terms_agreed_at = datetime.utcnow()
+    current_user.updated_at = datetime.utcnow()
+    
+    db.commit()
+    
+    return {"message": "약관동의 정보가 업데이트되었습니다."}
 
 
 @app.post("/token")
@@ -1405,6 +1612,11 @@ def read_users_me(current_user: User = Depends(get_current_user)):
         username=current_user.username,
         email=current_user.email,
         created_at=current_user.created_at.isoformat(),
+        service_terms_agreed=current_user.service_terms_agreed,
+        privacy_policy_agreed=current_user.privacy_policy_agreed,
+        location_consent_agreed=current_user.location_consent_agreed,
+        marketing_consent_agreed=current_user.marketing_consent_agreed,
+        terms_agreed_at=current_user.terms_agreed_at.isoformat()
     )
 
 
@@ -1421,7 +1633,7 @@ async def predict_risk(location: LocationRequest):
     min_distance = float("inf")
     nearest_risk = 0.0
 
-    for zone in DUMMY_RISK_ZONES:
+    for zone in RISK_ZONES:
         distance = calculate_distance(
             location.latitude, location.longitude, zone["lat"], zone["lng"]
         )
@@ -1451,7 +1663,7 @@ async def predict_risk(location: LocationRequest):
 @app.get("/risk-zones")
 async def get_risk_zones():
     """서울시 위험지역 목록 반환"""
-    return {"zones": DUMMY_RISK_ZONES, "total_count": len(DUMMY_RISK_ZONES)}
+    return {"zones": RISK_ZONES, "total_count": len(RISK_ZONES)}
 
 
 @app.get("/construction-zones")
@@ -1570,7 +1782,7 @@ async def get_safe_walking_route(route_request: RouteRequest):
     try:
         # 위험지역 목록 가져오기 (싱크홀 + 공사장)
         avoid_zones = []
-        all_risk_zones = DUMMY_RISK_ZONES + [
+        all_risk_zones = RISK_ZONES + [
             zone for zone in CONSTRUCTION_DATA if zone.get("status") == "진행중"
         ]
 
@@ -2412,7 +2624,7 @@ async def generate_exercise_route(route_request: ExerciseRouteRequest):
         avoid_zones = []
         if route_request.avoid_dangerous_zones:
             # 기존 위험지역 데이터 + 공사장 데이터 활용
-            all_zones = DUMMY_RISK_ZONES + [
+            all_zones = RISK_ZONES + [
                 zone
                 for zone in CONSTRUCTION_DATA
                 if zone.get("status") == "진행중" and zone.get("risk", 0) > 0.6
@@ -2939,7 +3151,7 @@ async def get_system_status():
     return {
         "api_version": "2.0.0",
         "server_time": datetime.now().isoformat(),
-        "risk_zones_count": len(DUMMY_RISK_ZONES),
+        "risk_zones_count": len(RISK_ZONES),
         "supported_languages": ["ko-KR"],
         "routing_providers": ["OSRM", "Custom Safety Algorithm"],
         "geocoding_providers": ["Kakao Maps", "Nominatim/OpenStreetMap"],

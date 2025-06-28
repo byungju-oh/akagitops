@@ -2,16 +2,29 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
+class UserAgreements(BaseModel):
+    serviceTerms: bool
+    privacyPolicy: bool
+    locationConsent: bool
+    marketingConsent: bool = False
+
 class UserCreate(BaseModel):
+    name: str  # username 대신 name 사용
     email: EmailStr
-    name: str
     password: str
+    agreements: UserAgreements
 
 class UserResponse(BaseModel):
     id: int
+    username: str  # DB에서는 username으로 저장되지만 프론트에서는 name으로 받음
     email: str
-    name: str
-    
+    created_at: str
+    service_terms_agreed: bool
+    privacy_policy_agreed: bool
+    location_consent_agreed: bool
+    marketing_consent_agreed: bool
+    terms_agreed_at: str
+
     class Config:
         from_attributes = True
 
@@ -94,27 +107,6 @@ class GeocodeResponse(BaseModel):
     display_name: str
 
 # 기존 스키마도 유지
-class LocationRequest(BaseModel):
-    latitude: float
-    longitude: float
-
-class RiskResponse(BaseModel):
-    latitude: float
-    longitude: float
-    risk_score: float
-    risk_level: str
-    message: str
-
-class UserCreate(BaseModel):
-    username: str
-    email: str
-    password: str
-
-class UserResponse(BaseModel):
-    id: int
-    username: str
-    email: str
-    created_at: str
-
-    class Config:
-        from_attributes = True
+# class LocationRequest(BaseModel):
+#     latitude: float
+#     longitude: float

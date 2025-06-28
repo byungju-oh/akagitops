@@ -27,7 +27,7 @@ const AuthProvider = ({ children }) => {
 
   const fetchUserInfo = async () => {
     try {
-      const response = await axios.get('/me');
+      const response = await axios.get('/users/me');
       setUser(response.data);
     } catch (error) {
       localStorage.removeItem('token');

@@ -81,3 +81,282 @@
 .auth-link a:hover {
   text-decoration: underline;
 }
+
+/* 약관 동의 섹션 */
+.terms-section {
+  margin: 20px 0;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.terms-section h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.agreement-list {
+  margin-top: 10px;
+}
+
+.agreement-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.agreement-item:last-child {
+  border-bottom: none;
+}
+
+.all-agreement {
+  background: #fff;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-weight: 600;
+  border-bottom: 2px solid #007bff;
+}
+
+.agreement-item label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+}
+
+.agreement-item input[type="checkbox"] {
+  margin-right: 10px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #007bff;
+}
+
+.checkmark {
+  margin-left: 5px;
+}
+
+.required-mark {
+  color: #dc3545;
+  font-weight: 600;
+  margin-right: 5px;
+}
+
+.optional-mark {
+  color: #6c757d;
+  font-weight: 600;
+  margin-right: 5px;
+}
+
+.view-terms-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.3s;
+  white-space: nowrap;
+}
+
+.view-terms-btn:hover {
+  background: #0056b3;
+}
+
+/* 모달 스타일 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.3s;
+}
+
+.modal-close:hover {
+  background: #e9ecef;
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  line-height: 1.6;
+}
+
+.modal-body pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  line-height: 1.6;
+  color: #333;
+  margin: 0;
+  font-size: 14px;
+}
+
+.modal-footer {
+  padding: 20px;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  justify-content: flex-end;
+  background: #f8f9fa;
+  border-radius: 0 0 8px 8px;
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s;
+}
+
+.modal-btn.confirm {
+  background: #007bff;
+  color: white;
+}
+
+.modal-btn.confirm:hover {
+  background: #0056b3;
+}
+
+/* 비활성화된 버튼 스타일 */
+.auth-btn:disabled {
+  background: #6c757d !important;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.auth-btn:disabled:hover {
+  background: #6c757d !important;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+    margin: 10px;
+  }
+  
+  .modal-header {
+    padding: 15px;
+  }
+  
+  .modal-body {
+    padding: 15px;
+  }
+  
+  .modal-footer {
+    padding: 15px;
+  }
+  
+  .agreement-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 15px 0;
+  }
+  
+  .agreement-item label {
+    align-self: stretch;
+  }
+  
+  .view-terms-btn {
+    align-self: flex-end;
+    margin-top: 5px;
+  }
+  
+  .terms-section {
+    margin: 15px 0;
+    padding: 15px;
+  }
+  
+  .all-agreement {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  
+  .modal-header {
+    border-radius: 0;
+  }
+  
+  .modal-footer {
+    border-radius: 0;
+  }
+  
+  .agreement-item label {
+    font-size: 13px;
+  }
+  
+  .view-terms-btn {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+}

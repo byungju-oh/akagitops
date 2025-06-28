@@ -210,10 +210,29 @@ const RouteSearch = () => {
                 </div>
               </div>
               <div className="input-group">
-                <label>도착지:</label>
-                <input type="text" value={endLocation} onChange={(e) => handleLocationChange(setEndLocation, e.target.value, setEndSuggestions, setShowEndSuggestions)} onFocus={() => endSuggestions.length > 0 && setShowEndSuggestions(true)} placeholder="예: 홍대입구"/>
-                {showEndSuggestions && <div className="suggestions-dropdown">{endSuggestions.slice(0,5).map((p,i)=><div key={i} className="suggestion-item" onClick={()=>selectLocation(p,setEndLocation,setEndCoords,setShowEndSuggestions)}><div>{p.place_name}</div><div className="place-address">{p.address_name}</div></div>)}</div>}
-              </div>
+    <label>도착지:</label>
+    {/* 👇 이 div를 추가하여 input과 제안 목록을 함께 감싸줍니다. */}
+    <div style={{ position: 'relative' }}> 
+        <input 
+            type="text" 
+            value={endLocation} 
+            onChange={(e) => handleLocationChange(setEndLocation, e.target.value, setEndSuggestions, setShowEndSuggestions)} 
+            onFocus={() => endSuggestions.length > 0 && setShowEndSuggestions(true)} 
+            placeholder="예: 홍대입구"
+        />
+        {/* 👇 제안 목록을 input과 같은 div 안으로 이동시켰습니다. */}
+        {showEndSuggestions && 
+            <div className="suggestions-dropdown">
+                {endSuggestions.slice(0, 5).map((p, i) => (
+                    <div key={i} className="suggestion-item" onClick={() => selectLocation(p, setEndLocation, setEndCoords, setShowEndSuggestions)}>
+                        <div>{p.place_name}</div>
+                        <div className="place-address">{p.address_name}</div>
+                    </div>
+                ))}
+            </div>
+        }
+    </div>
+</div>
               <button onClick={() => handleSearch()} disabled={loading} className="search-btn">{loading ? '🔍 경로 계산 중...' : '🚶‍♂️ 경로 검색'}</button>
             </div>
           </>

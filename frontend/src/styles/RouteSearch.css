@@ -9,6 +9,7 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   box-sizing: border-box;
   overflow: hidden;
+  border-radius: 15px;
 }
 
 /* 검색 패널 */
@@ -22,6 +23,7 @@
   height: calc(100vh - 40px);
   overflow-y: auto;
   box-sizing: border-box;
+  border-radius: 15px;
 }
 
 /* 커스텀 스크롤바 for 검색 패널 */

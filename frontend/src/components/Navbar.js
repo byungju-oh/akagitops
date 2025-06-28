@@ -31,7 +31,7 @@ const Navbar = () => {
           {user ? (
             // 로그인된 상태
             <>
-              <span className="user-info">안녕하세요, {user.name}님</span>
+              <span className="user-info">안녕하세요, {user.username}님</span>
               <button onClick={handleLogout} className="logout-btn">
                 로그아웃
               </button>
