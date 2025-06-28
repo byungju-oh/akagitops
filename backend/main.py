@@ -2692,9 +2692,11 @@ async def calculate_steps_for_distance(request: StepsCalculatorRequest):
 
 @app.get("/exercise-areas")
 async def get_exercise_areas():
-    """서울시 추천 운동 지역 목록 (수정된 버전)"""
+    """서울시 추천 운동 지역 목록 (완전히 수정된 버전)"""
     try:
-        # 직접 산책로 데이터 정의 (safe_areas가 비어있는 경우 대비)
+        logger.info("📍 산책로 API 호출 시작")
+        
+        # 직접 산책로 데이터 정의 (확실한 백업)
         safe_areas_data = [
             # 공원 (Parks)
             {
@@ -2738,6 +2740,24 @@ async def get_exercise_areas():
                 "center": [37.5479, 127.0810],
                 "type": "park",
                 "radius_km": 1.5,
+            },
+            {
+                "name": "서서울호수공원",
+                "center": [37.5210, 126.8370],
+                "type": "park",
+                "radius_km": 1.0,
+            },
+            {
+                "name": "푸른수목원",
+                "center": [37.4836, 126.8155],
+                "type": "park",
+                "radius_km": 1.3,
+            },
+            {
+                "name": "율현공원",
+                "center": [37.4760, 127.1120],
+                "type": "park",
+                "radius_km": 0.8,
             },
             {
                 "name": "용산가족공원",
@@ -2800,6 +2820,12 @@ async def get_exercise_areas():
                 "type": "river",
                 "radius_km": 1.5,
             },
+            {
+                "name": "한강공원 난지",
+                "center": [37.5714, 126.8986],
+                "type": "river",
+                "radius_km": 1.6,
+            },
             # 하천 (Streams)
             {
                 "name": "청계천",
@@ -2824,6 +2850,24 @@ async def get_exercise_areas():
                 "center": [37.4015, 127.1105],
                 "type": "stream",
                 "radius_km": 5.5,
+            },
+            {
+                "name": "성북천",
+                "center": [37.5820, 127.0180],
+                "type": "stream",
+                "radius_km": 2.5,
+            },
+            {
+                "name": "불광천",
+                "center": [37.5880, 126.9130],
+                "type": "stream",
+                "radius_km": 3.2,
+            },
+            {
+                "name": "우이천",
+                "center": [37.6380, 127.0300],
+                "type": "stream",
+                "radius_km": 2.8,
             },
             # 산/숲길 (Mountains/Trails)
             {
@@ -2862,6 +2906,12 @@ async def get_exercise_areas():
                 "type": "mountain",
                 "radius_km": 2.8,
             },
+            {
+                "name": "아차산",
+                "center": [37.5539, 127.0988],
+                "type": "mountain",
+                "radius_km": 1.8,
+            },
             # 숲길/산책로 (Nature Trails)
             {
                 "name": "경의선숲길",
@@ -2886,6 +2936,12 @@ async def get_exercise_areas():
                 "center": [37.5441, 127.1269],
                 "type": "trail",
                 "radius_km": 3.8,
+            },
+            {
+                "name": "경춘선숲길",
+                "center": [37.6220, 127.0850],
+                "type": "trail",
+                "radius_km": 4.5,
             },
             {
                 "name": "암사생태공원",
@@ -2954,7 +3010,63 @@ async def get_exercise_areas():
                 "type": "history",
                 "radius_km": 0.7,
             },
+            {
+                "name": "삼청동길",
+                "center": [37.5824, 126.9816],
+                "type": "history",
+                "radius_km": 1.0,
+            },
+            {
+                "name": "덕수궁 돌담길",
+                "center": [37.5659, 126.9749],
+                "type": "history",
+                "radius_km": 0.8,
+            },
+            {
+                "name": "한양도성길",
+                "center": [37.5788, 127.0072],
+                "type": "history",
+                "radius_km": 1.5,
+            },
+            {
+                "name": "석촌호수공원",
+                "center": [37.5093, 127.1048],
+                "type": "park",
+                "radius_km": 1.2,
+            },
+            {
+                "name": "몽마르뜨공원",
+                "center": [37.5003, 127.0016],
+                "type": "park",
+                "radius_km": 0.6,
+            },
+            {
+                "name": "국립현충원",
+                "center": [37.5029, 126.9769],
+                "type": "park",
+                "radius_km": 1.8,
+            },
+            {
+                "name": "매헌시민의숲",
+                "center": [37.4704, 127.0368],
+                "type": "park",
+                "radius_km": 1.4,
+            },
+            {
+                "name": "개운산공원",
+                "center": [37.5950, 127.0200],
+                "type": "mountain",
+                "radius_km": 1.0,
+            },
+            {
+                "name": "일자산허브천문공원",
+                "center": [37.5490, 127.1600],
+                "type": "park",
+                "radius_km": 1.2,
+            },
         ]
+        
+        logger.info(f"📊 백업 데이터 준비: {len(safe_areas_data)}개 지역")
         
         areas_with_info = []
 
@@ -2988,30 +3100,56 @@ async def get_exercise_areas():
             "history": ["문화해설", "주변 맛집"],
         }
 
-        # exercise_route_service.safe_areas가 있으면 사용, 없으면 직접 정의한 데이터 사용
+        # 기존 서비스 데이터 확인 시도
+        source_areas = None
         try:
-            source_areas = exercise_route_service.safe_areas if exercise_route_service.safe_areas else safe_areas_data
-        except:
+            if hasattr(exercise_route_service, 'safe_areas') and exercise_route_service.safe_areas:
+                logger.info(f"🔧 기존 서비스 데이터 발견: {len(exercise_route_service.safe_areas)}개")
+                source_areas = exercise_route_service.safe_areas
+            else:
+                logger.warning("⚠️ 기존 서비스 데이터가 비어있음")
+                source_areas = safe_areas_data
+        except Exception as e:
+            logger.error(f"❌ 기존 서비스 접근 오류: {e}")
             source_areas = safe_areas_data
             
-        logger.info(f"📍 산책로 데이터 로드: {len(source_areas)}개 지역")
+        if not source_areas:
+            logger.warning("⚠️ source_areas가 비어있음, 백업 데이터 사용")
+            source_areas = safe_areas_data
+            
+        logger.info(f"📍 최종 사용할 데이터: {len(source_areas)}개 지역")
 
-        for area in source_areas:
-            area_type = area.get("type", "park")  # 기본값을 'park'로 설정
+        for i, area in enumerate(source_areas):
+            try:
+                area_type = area.get("type", "park")  # 기본값을 'park'로 설정
+                
+                # center 데이터 처리 (튜플 또는 리스트 모두 지원)
+                center_data = area.get("center", [37.5665, 126.9780])  # 기본값: 서울시청
+                if isinstance(center_data, tuple):
+                    center_lat, center_lng = center_data
+                elif isinstance(center_data, list) and len(center_data) >= 2:
+                    center_lat, center_lng = center_data[0], center_data[1]
+                else:
+                    logger.warning(f"⚠️ area {i}의 center 데이터 형식 오류: {center_data}")
+                    center_lat, center_lng = 37.5665, 126.9780  # 기본값
 
-            area_info = {
-                "name": area["name"],
-                "center": {"lat": area["center"][0], "lng": area["center"][1]},
-                "type": area_type,
-                "type_description": type_descriptions.get(area_type, "산책로"),
-                "recommended_activities": recommended_activities.get(
-                    area_type, ["산책"]
-                ),
-                "difficulty": "easy" if area_type not in ["mountain"] else "medium",
-                "facilities": facilities_info.get(area_type, ["편의시설"]),
-                "radius_km": area.get("radius_km", 1.0),  # 추가된 반경 정보
-            }
-            areas_with_info.append(area_info)
+                area_info = {
+                    "name": area.get("name", f"산책로 {i+1}"),
+                    "center": {"lat": center_lat, "lng": center_lng},
+                    "type": area_type,
+                    "type_description": type_descriptions.get(area_type, "산책로"),
+                    "recommended_activities": recommended_activities.get(
+                        area_type, ["산책"]
+                    ),
+                    "difficulty": "easy" if area_type not in ["mountain"] else "medium",
+                    "facilities": facilities_info.get(area_type, ["편의시설"]),
+                    "radius_km": area.get("radius_km", 1.0),  # 반경 정보
+                }
+                areas_with_info.append(area_info)
+                
+            except Exception as e:
+                logger.error(f"❌ area {i} 처리 오류: {e}, area: {area}")
+                continue
 
         # 타입별 개수 계산
         type_counts = {}
@@ -3019,18 +3157,362 @@ async def get_exercise_areas():
             type_counts[area["type"]] = type_counts.get(area["type"], 0) + 1
 
         logger.info(f"✅ 산책로 응답 준비 완료: {len(areas_with_info)}개 지역")
+        logger.info(f"📊 타입별 분포: {type_counts}")
         
         return {
             "areas": areas_with_info,
             "total_count": len(areas_with_info),
             "types": type_counts,
+            "data_source": "backup" if source_areas == safe_areas_data else "service",
         }
 
     except Exception as e:
-        logger.error(f"지역 정보 조회 오류: {e}", exc_info=True)
+        logger.error(f"❌ 지역 정보 조회 오류: {e}", exc_info=True)
         raise HTTPException(
             status_code=500, detail=f"지역 정보 조회 중 오류가 발생했습니다: {str(e)}"
         )
+
+# @app.get("/exercise-areas")
+# async def get_exercise_areas():
+#     """서울시 추천 운동 지역 목록 (수정된 버전)"""
+#     try:
+#         # 직접 산책로 데이터 정의 (safe_areas가 비어있는 경우 대비)
+#         safe_areas_data = [
+#             # 공원 (Parks)
+#             {
+#                 "name": "올림픽공원",
+#                 "center": [37.5213, 127.1218],
+#                 "type": "park",
+#                 "radius_km": 2.5,
+#             },
+#             {
+#                 "name": "서울숲",
+#                 "center": [37.5447, 127.0374],
+#                 "type": "park",
+#                 "radius_km": 1.8,
+#             },
+#             {
+#                 "name": "보라매공원",
+#                 "center": [37.4915, 126.9199],
+#                 "type": "park",
+#                 "radius_km": 1.2,
+#             },
+#             {
+#                 "name": "북서울꿈의숲",
+#                 "center": [37.6214, 127.0601],
+#                 "type": "park",
+#                 "radius_km": 2.0,
+#             },
+#             {
+#                 "name": "월드컵공원 (하늘공원)",
+#                 "center": [37.5709, 126.8828],
+#                 "type": "park",
+#                 "radius_km": 3.0,
+#             },
+#             {
+#                 "name": "선유도공원",
+#                 "center": [37.5434, 126.8973],
+#                 "type": "park",
+#                 "radius_km": 0.8,
+#             },
+#             {
+#                 "name": "어린이대공원",
+#                 "center": [37.5479, 127.0810],
+#                 "type": "park",
+#                 "radius_km": 1.5,
+#             },
+#             {
+#                 "name": "용산가족공원",
+#                 "center": [37.5280, 126.9697],
+#                 "type": "park",
+#                 "radius_km": 1.0,
+#             },
+#             {
+#                 "name": "여의도공원",
+#                 "center": [37.5267, 126.9242],
+#                 "type": "park",
+#                 "radius_km": 1.0,
+#             },
+#             {
+#                 "name": "남산공원",
+#                 "center": [37.5536, 126.9906],
+#                 "type": "mountain",
+#                 "radius_km": 2.0,
+#             },
+#             # 강변 (Rivers)
+#             {
+#                 "name": "한강공원 여의도",
+#                 "center": [37.5285, 126.9337],
+#                 "type": "river",
+#                 "radius_km": 2.0,
+#             },
+#             {
+#                 "name": "한강공원 반포",
+#                 "center": [37.5131, 127.0009],
+#                 "type": "river",
+#                 "radius_km": 2.5,
+#             },
+#             {
+#                 "name": "한강공원 뚝섬",
+#                 "center": [37.5307, 127.0666],
+#                 "type": "river",
+#                 "radius_km": 3.0,
+#             },
+#             {
+#                 "name": "한강공원 잠실",
+#                 "center": [37.5202, 127.0825],
+#                 "type": "river",
+#                 "radius_km": 2.8,
+#             },
+#             {
+#                 "name": "한강공원 강서",
+#                 "center": [37.5653, 126.8153],
+#                 "type": "river",
+#                 "radius_km": 2.2,
+#             },
+#             {
+#                 "name": "한강공원 망원",
+#                 "center": [37.5553, 126.8949],
+#                 "type": "river",
+#                 "radius_km": 1.8,
+#             },
+#             {
+#                 "name": "한강공원 이촌",
+#                 "center": [37.5215, 126.9675],
+#                 "type": "river",
+#                 "radius_km": 1.5,
+#             },
+#             # 하천 (Streams)
+#             {
+#                 "name": "청계천",
+#                 "center": [37.5704, 126.9910],
+#                 "type": "stream",
+#                 "radius_km": 3.8,
+#             },
+#             {
+#                 "name": "양재천",
+#                 "center": [37.4712, 127.0359],
+#                 "type": "stream",
+#                 "radius_km": 4.2,
+#             },
+#             {
+#                 "name": "중랑천",
+#                 "center": [37.5856, 127.0436],
+#                 "type": "stream",
+#                 "radius_km": 6.0,
+#             },
+#             {
+#                 "name": "탄천",
+#                 "center": [37.4015, 127.1105],
+#                 "type": "stream",
+#                 "radius_km": 5.5,
+#             },
+#             # 산/숲길 (Mountains/Trails)
+#             {
+#                 "name": "안산자락길",
+#                 "center": [37.5714, 126.9540],
+#                 "type": "mountain",
+#                 "radius_km": 2.2,
+#             },
+#             {
+#                 "name": "인왕산",
+#                 "center": [37.5824, 126.9571],
+#                 "type": "mountain",
+#                 "radius_km": 1.8,
+#             },
+#             {
+#                 "name": "북악산",
+#                 "center": [37.5934, 126.9810],
+#                 "type": "mountain",
+#                 "radius_km": 2.5,
+#             },
+#             {
+#                 "name": "관악산",
+#                 "center": [37.4483, 126.9615],
+#                 "type": "mountain",
+#                 "radius_km": 3.5,
+#             },
+#             {
+#                 "name": "대모산",
+#                 "center": [37.4642, 127.0648],
+#                 "type": "mountain",
+#                 "radius_km": 2.0,
+#             },
+#             {
+#                 "name": "수락산",
+#                 "center": [37.6975, 127.0662],
+#                 "type": "mountain",
+#                 "radius_km": 2.8,
+#             },
+#             # 숲길/산책로 (Nature Trails)
+#             {
+#                 "name": "경의선숲길",
+#                 "center": [37.5663, 126.9251],
+#                 "type": "trail",
+#                 "radius_km": 6.3,
+#             },
+#             {
+#                 "name": "서울둘레길 1코스",
+#                 "center": [37.6362, 127.0203],
+#                 "type": "trail",
+#                 "radius_km": 3.2,
+#             },
+#             {
+#                 "name": "서울둘레길 2코스",
+#                 "center": [37.6089, 127.0736],
+#                 "type": "trail",
+#                 "radius_km": 4.1,
+#             },
+#             {
+#                 "name": "서울둘레길 3코스",
+#                 "center": [37.5441, 127.1269],
+#                 "type": "trail",
+#                 "radius_km": 3.8,
+#             },
+#             {
+#                 "name": "암사생태공원",
+#                 "center": [37.5516, 127.1301],
+#                 "type": "trail",
+#                 "radius_km": 1.5,
+#             },
+#             # 역사/문화 (Historical/Cultural)
+#             {
+#                 "name": "경복궁",
+#                 "center": [37.5788, 126.9770],
+#                 "type": "history",
+#                 "radius_km": 0.8,
+#             },
+#             {
+#                 "name": "창덕궁",
+#                 "center": [37.5814, 126.9910],
+#                 "type": "history",
+#                 "radius_km": 0.6,
+#             },
+#             {
+#                 "name": "덕수궁",
+#                 "center": [37.5657, 126.9751],
+#                 "type": "history",
+#                 "radius_km": 0.5,
+#             },
+#             {
+#                 "name": "창경궁",
+#                 "center": [37.5792, 126.9949],
+#                 "type": "history",
+#                 "radius_km": 0.7,
+#             },
+#             {
+#                 "name": "종묘",
+#                 "center": [37.5741, 126.9940],
+#                 "type": "history",
+#                 "radius_km": 0.4,
+#             },
+#             {
+#                 "name": "북촌한옥마을",
+#                 "center": [37.5814, 126.9849],
+#                 "type": "history",
+#                 "radius_km": 1.2,
+#             },
+#             {
+#                 "name": "인사동",
+#                 "center": [37.5719, 126.9854],
+#                 "type": "history",
+#                 "radius_km": 0.8,
+#             },
+#             {
+#                 "name": "명동",
+#                 "center": [37.5636, 126.9834],
+#                 "type": "history",
+#                 "radius_km": 0.6,
+#             },
+#             {
+#                 "name": "동대문디자인플라자",
+#                 "center": [37.5664, 127.0092],
+#                 "type": "history",
+#                 "radius_km": 0.5,
+#             },
+#             {
+#                 "name": "홍대상상마당",
+#                 "center": [37.5511, 126.9227],
+#                 "type": "history",
+#                 "radius_km": 0.7,
+#             },
+#         ]
+        
+#         areas_with_info = []
+
+#         # 각 타입에 대한 설명을 담은 딕셔너리
+#         type_descriptions = {
+#             "park": "공원",
+#             "river": "강변",
+#             "stream": "하천",
+#             "mountain": "산/숲길",
+#             "trail": "숲길/산책로",
+#             "history": "역사/문화",
+#         }
+
+#         # 각 타입에 대한 추천 활동을 담은 딕셔너리
+#         recommended_activities = {
+#             "park": ["가족 산책", "조깅", "자전거"],
+#             "river": ["장거리 걷기", "조깅", "자전거"],
+#             "stream": ["가벼운 산책", "조깅"],
+#             "mountain": ["등산", "트레킹", "자연 감상"],
+#             "trail": ["테마 산책", "사진 촬영", "데이트"],
+#             "history": ["역사 탐방", "고궁 산책", "문화 체험"],
+#         }
+
+#         # 각 타입에 대한 편의시설 정보를 담은 딕셔너리
+#         facilities_info = {
+#             "park": ["화장실", "음수대", "벤치"],
+#             "river": ["화장실", "자전거 대여소"],
+#             "stream": ["벤치", "운동기구"],
+#             "mountain": ["등산로", "쉼터"],
+#             "trail": ["안내판", "카페/상점"],
+#             "history": ["문화해설", "주변 맛집"],
+#         }
+
+#         # exercise_route_service.safe_areas가 있으면 사용, 없으면 직접 정의한 데이터 사용
+#         try:
+#             source_areas = exercise_route_service.safe_areas if exercise_route_service.safe_areas else safe_areas_data
+#         except:
+#             source_areas = safe_areas_data
+            
+#         logger.info(f"📍 산책로 데이터 로드: {len(source_areas)}개 지역")
+
+#         for area in source_areas:
+#             area_type = area.get("type", "park")  # 기본값을 'park'로 설정
+
+#             area_info = {
+#                 "name": area["name"],
+#                 "center": {"lat": area["center"][0], "lng": area["center"][1]},
+#                 "type": area_type,
+#                 "type_description": type_descriptions.get(area_type, "산책로"),
+#                 "recommended_activities": recommended_activities.get(
+#                     area_type, ["산책"]
+#                 ),
+#                 "difficulty": "easy" if area_type not in ["mountain"] else "medium",
+#                 "facilities": facilities_info.get(area_type, ["편의시설"]),
+#                 "radius_km": area.get("radius_km", 1.0),  # 추가된 반경 정보
+#             }
+#             areas_with_info.append(area_info)
+
+#         # 타입별 개수 계산
+#         type_counts = {}
+#         for area in areas_with_info:
+#             type_counts[area["type"]] = type_counts.get(area["type"], 0) + 1
+
+#         logger.info(f"✅ 산책로 응답 준비 완료: {len(areas_with_info)}개 지역")
+        
+#         return {
+#             "areas": areas_with_info,
+#             "total_count": len(areas_with_info),
+#             "types": type_counts,
+#         }
+
+#     except Exception as e:
+#         logger.error(f"지역 정보 조회 오류: {e}", exc_info=True)
+#         raise HTTPException(
+#             status_code=500, detail=f"지역 정보 조회 중 오류가 발생했습니다: {str(e)}"
+#         )
 
 
 @app.post("/quick-exercise-route")
