@@ -1,4 +1,4 @@
-// frontend/src/pages/ReportChatbot.js - 싱크홀 분석 기능 포함
+// frontend/src/pages/ReportChatbot.js - 이미지 압축 기능 추가
 import React, { useState, useRef, useEffect } from 'react';
 import '../styles/ReportChatbot.css';
 
@@ -17,6 +17,8 @@ const ReportChatbot = () => {
   const [previewImage, setPreviewImage] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
+  const [isCompressing, setIsCompressing] = useState(false); // 🆕 압축 상태
+  const [compressionInfo, setCompressionInfo] = useState(null); // 🆕 압축 정보
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -31,33 +33,149 @@ const ReportChatbot = () => {
     scrollToBottom();
   }, [messages]);
 
-  // 이미지 파일 선택 처리
-  const handleImageSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.type.startsWith('image/')) {
-        // 파일 크기 확인 (10MB)
-        if (file.size > 10 * 1024 * 1024) {
-          alert('이미지 파일은 10MB 이하만 업로드 가능합니다.');
-          return;
+  // 🆕 이미지 압축 함수
+  const compressImage = (file, maxSizeMB = 3, quality = 0.8, maxDimension = 2048) => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onerror = () => reject(new Error('이미지 로드 실패'));
+      
+      img.onload = () => {
+        try {
+          // 🔧 크기 계산 (비율 유지)
+          let { width, height } = img;
+          
+          // 최대 해상도 제한
+          if (width > height && width > maxDimension) {
+            height = (height * maxDimension) / width;
+            width = maxDimension;
+          } else if (height > maxDimension) {
+            width = (width * maxDimension) / height;
+            height = maxDimension;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          // 🔧 고품질 리샘플링
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // 🔧 압축된 Blob 생성
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                // File 객체로 변환 (원본 파일명 유지)
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now()
+                });
+                resolve(compressedFile);
+              } else {
+                reject(new Error('압축 실패'));
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        } catch (error) {
+          reject(error);
         }
-        
-        setSelectedImage(file);
-        setAnalysisResult(null); // 이전 분석 결과 초기화
-        
-        // 이미지 미리보기
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setPreviewImage(e.target.result);
-        };
-        reader.readAsDataURL(file);
-        
-        // 자동으로 이미지 분석 수행
-        performImageAnalysis(file);
-      } else {
-        alert('이미지 파일만 업로드 가능합니다.');
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
+  // 🔧 이미지 파일 선택 처리 (압축 기능 추가)
+  const handleImageSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 🔧 기본 검증
+    if (!file.type.startsWith('image/')) {
+      alert('❌ 이미지 파일만 업로드 가능합니다.\n\n지원 형식: JPG, PNG, GIF, BMP');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
+      return;
     }
+
+    // 🔧 최대 파일 크기 확인 (50MB)
+    const maxFileSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxFileSize) {
+      alert(`❌ 파일이 너무 큽니다!\n\n• 현재 크기: ${(file.size / (1024 * 1024)).toFixed(1)}MB\n• 최대 크기: 50MB\n\n📝 해결 방법:\n• 사진 해상도를 낮춰주세요\n• 다른 이미지 편집 앱으로 압축해주세요\n• 다른 사진을 선택해주세요`);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    // 🔧 압축이 필요한지 확인 (3MB 이상)
+    const needsCompression = file.size > 3 * 1024 * 1024; // 3MB
+    let finalFile = file;
+    let compressionData = null;
+
+    if (needsCompression) {
+      try {
+        setIsCompressing(true);
+        console.log(`🔄 이미지 압축 시작... (원본: ${(file.size / (1024 * 1024)).toFixed(1)}MB)`);
+        
+        // 압축 수행
+        const compressedFile = await compressImage(file, 3, 0.8, 2048);
+        
+        compressionData = {
+          originalSize: file.size,
+          compressedSize: compressedFile.size,
+          compressionRatio: ((file.size - compressedFile.size) / file.size * 100).toFixed(1),
+          originalSizeMB: (file.size / (1024 * 1024)).toFixed(1),
+          compressedSizeMB: (compressedFile.size / (1024 * 1024)).toFixed(1)
+        };
+        
+        console.log(`✅ 압축 완료: ${compressionData.originalSizeMB}MB → ${compressionData.compressedSizeMB}MB (${compressionData.compressionRatio}% 감소)`);
+        
+        finalFile = compressedFile;
+        setCompressionInfo(compressionData);
+        
+      } catch (compressionError) {
+        console.error('❌ 압축 실패:', compressionError);
+        alert(`⚠️ 이미지 압축에 실패했습니다.\n\n원본 이미지를 사용합니다.\n오류: ${compressionError.message}`);
+        finalFile = file;
+        setCompressionInfo(null);
+      } finally {
+        setIsCompressing(false);
+      }
+    } else {
+      console.log(`✅ 압축 불필요: ${(file.size / (1024 * 1024)).toFixed(1)}MB`);
+      setCompressionInfo(null);
+    }
+
+    // 🔧 최종 파일 크기 재확인 (5MB)
+    if (finalFile.size > 5 * 1024 * 1024) {
+      alert(`❌ 압축 후에도 파일이 여전히 큽니다!\n\n• 압축 후 크기: ${(finalFile.size / (1024 * 1024)).toFixed(1)}MB\n• 허용 크기: 5MB\n\n📝 해결 방법:\n• 더 작은 해상도의 사진을 선택해주세요\n• 사진 편집 앱으로 추가 압축해주세요`);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      setCompressionInfo(null);
+      return;
+    }
+
+    // 🔧 파일 설정 및 미리보기
+    setSelectedImage(finalFile);
+    setAnalysisResult(null);
+    
+    // 미리보기 생성
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setPreviewImage(e.target.result);
+    };
+    reader.readAsDataURL(finalFile);
+    
+    // 자동으로 이미지 분석 수행
+    performImageAnalysis(finalFile);
   };
 
   // 이미지 분석 수행
@@ -70,7 +188,11 @@ const ReportChatbot = () => {
       const formData = new FormData();
       formData.append('image', imageFile);
       
-      console.log('🔍 이미지 분석 시작...');
+      console.log('🔍 이미지 분석 시작...', {
+        fileName: imageFile.name,
+        fileSize: `${(imageFile.size / (1024 * 1024)).toFixed(1)}MB`,
+        fileType: imageFile.type
+      });
       
       const response = await fetch('/chatbot/analyze-image', {
         method: 'POST',
@@ -78,6 +200,9 @@ const ReportChatbot = () => {
       });
       
       if (!response.ok) {
+        if (response.status === 413) {
+          throw new Error('파일이 너무 큽니다. 더 작은 이미지를 선택해주세요.');
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
@@ -96,7 +221,11 @@ const ReportChatbot = () => {
       
     } catch (error) {
       console.error('❌ 이미지 분석 API 오류:', error);
-      showAnalysisErrorInChat('이미지 분석 서비스에 연결할 수 없습니다.');
+      if (error.message.includes('파일이 너무 큽니다')) {
+        showAnalysisErrorInChat('파일이 너무 큽니다. 이미지를 더 압축해주세요.');
+      } else {
+        showAnalysisErrorInChat('이미지 분석 서비스에 연결할 수 없습니다.');
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -189,6 +318,7 @@ ${errorMessage}
     setSelectedImage(null);
     setPreviewImage(null);
     setAnalysisResult(null);
+    setCompressionInfo(null); // 🆕 압축 정보 초기화
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -263,6 +393,7 @@ ${errorMessage}
     setSelectedImage(null);
     setPreviewImage(null);
     setAnalysisResult(null);
+    setCompressionInfo(null); // 🆕 압축 정보 초기화
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -442,16 +573,34 @@ ${errorMessage}
                 ✕
               </button>
               
+              {/* 🆕 압축 진행 상태 표시 */}
+              {isCompressing && (
+                <div className="analysis-overlay">
+                  <div className="analysis-spinner"></div>
+                  <span>이미지를 압축하고 있습니다...</span>
+                </div>
+              )}
+              
               {/* 분석 진행 상태 표시 */}
-              {isAnalyzing && (
+              {isAnalyzing && !isCompressing && (
                 <div className="analysis-overlay">
                   <div className="analysis-spinner"></div>
                   <span>AI가 이미지를 분석하고 있습니다...</span>
                 </div>
               )}
               
+              {/* 🆕 압축 정보 표시 */}
+              {compressionInfo && !isCompressing && !isAnalyzing && (
+                <div className="compression-info">
+                  <div className="compression-badge">
+                    🗜️ 압축됨<br />
+                    <small>{compressionInfo.originalSizeMB}MB → {compressionInfo.compressedSizeMB}MB</small>
+                  </div>
+                </div>
+              )}
+              
               {/* 분석 결과 미리보기 */}
-              {analysisResult && !isAnalyzing && (
+              {analysisResult && !isAnalyzing && !isCompressing && (
                 <div className="analysis-preview">
                   <div className={`analysis-badge ${analysisResult.risk_level}`}>
                     {analysisResult.is_sinkhole && analysisResult.confidence >= 70 ? 
@@ -484,9 +633,9 @@ ${errorMessage}
               className="image-upload-btn"
               onClick={() => fileInputRef.current?.click()}
               title="이미지 첨부 (AI 자동 분석)"
-              disabled={isAnalyzing}
+              disabled={isAnalyzing || isCompressing} // 🆕 압축 중에도 비활성화
             >
-              {isAnalyzing ? '🔍' : '📷'}
+              {isCompressing ? '🗜️' : isAnalyzing ? '🔍' : '📷'}
             </button>
 
             <textarea
@@ -509,7 +658,7 @@ ${errorMessage}
           </div>
           
           <div className="input-help">
-            💡 사진을 업로드하면 AI가 자동으로 싱크홀 여부를 분석합니다 (JPG, PNG, 10MB 이하)
+            💡 사진을 업로드하면 AI가 자동으로 싱크홀 여부를 분석합니다 (JPG, PNG, 자동 압축 지원)
           </div>
         </div>
       </div>
