@@ -1209,3 +1209,148 @@
     font-size: 0.9em;
   }
 }
+/* 산책로 검색 버튼 스타일 추가 */
+.recommend-search-btn {
+  width: 100%;
+  padding: 15px 20px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 15px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.recommend-search-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #764ba2, #667eea);
+}
+
+.recommend-search-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  background: linear-gradient(135deg, #ccc, #999);
+}
+
+/* 기존 recommend-location-section 스타일 개선 */
+.recommend-location-section {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #dee2e6;
+}
+
+.recommend-location-section label {
+  display: block;
+  font-weight: 600;
+  color: #343a40;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.recommend-location-section .input-with-suggestions {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.recommend-location-section .search-input-container {
+  position: relative;
+  flex: 1;
+}
+
+.recommend-location-section input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: white;
+  box-sizing: border-box;
+}
+
+.recommend-location-section input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-radius: 10px 10px 0 0;
+}
+
+.recommend-location-section .current-location-btn {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-size: 14px;
+  min-width: 45px;
+}
+
+.recommend-location-section .current-location-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.recommend-location-section .current-location-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 반응형 디자인 개선 */
+@media (max-width: 768px) {
+  .recommend-location-section {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .recommend-location-section .input-with-suggestions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .recommend-location-section .current-location-btn {
+    width: 100%;
+  }
+  
+  .recommend-search-btn {
+    padding: 12px 16px;
+    font-size: 15px;
+    margin-top: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .recommend-location-section {
+    padding: 12px;
+  }
+  
+  .recommend-location-section label {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  
+  .recommend-location-section input {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .recommend-search-btn {
+    padding: 10px 14px;
+    font-size: 14px;
+    margin-top: 10px;
+  }
+}

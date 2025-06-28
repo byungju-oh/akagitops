@@ -135,6 +135,15 @@ const RouteSearch = () => {
     }
   };
 
+  // 새로 추가: 산책로 검색 버튼 핸들러
+  const handleRecommendSearch = () => {
+    if (!recommendBaseCoords) {
+      toast.error("기준 위치를 먼저 설정해주세요.");
+      return;
+    }
+    fetchRecommendedCourses(recommendBaseCoords);
+  };
+
   const handleSelectCourse = async (course) => {
     if (!recommendBaseCoords) {
       toast.error("기준 위치를 먼저 설정해주세요.");
@@ -196,8 +205,6 @@ const RouteSearch = () => {
     setRecommendBaseLocation(place.place_name);
     setRecommendBaseCoords({ lat: parseFloat(place.y), lng: parseFloat(place.x) });
     setShowRecommendSuggestions(false);
-    // 위치가 선택되면 바로 추천 산책로 검색
-    fetchRecommendedCourses({ lat: parseFloat(place.y), lng: parseFloat(place.x) });
   };
   
   const handleSearch = async (start = startCoords, end = endCoords) => {
@@ -309,10 +316,19 @@ const RouteSearch = () => {
                 </div>
                 <button onClick={handleRecommendCurrentLocation} className="current-location-btn" disabled={loading}>📍</button>
               </div>
+              
+              {/* 새로 추가: 산책로 검색 버튼 */}
+              <button 
+                onClick={handleRecommendSearch} 
+                disabled={loading || !recommendBaseCoords} 
+                className="recommend-search-btn"
+              >
+                {loading ? '🔍 검색 중...' : '🏞️ 주변 산책로 검색하기'}
+              </button>
             </div>
 
             <p style={{ marginTop: '15px', fontSize: '14px', color: '#666' }}>
-              {recommendBaseCoords ? '선택한 위치 기준으로 가까운 걷기 좋은 곳들이에요.' : '위치를 선택하시면 주변 산책로를 추천해드려요.'}
+              {recommendBaseCoords ? '선택한 위치 기준으로 가까운 걷기 좋은 곳들이에요.' : '위치를 선택하고 검색 버튼을 눌러주세요.'}
             </p>
             
             {loading && <div className="loading-spinner">🔄 추천 산책로 검색 중...</div>}
