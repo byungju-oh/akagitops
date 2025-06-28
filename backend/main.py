@@ -1500,7 +1500,7 @@ async def shutdown_event():
 # =============================================================================
 # 인증 관련 API 엔드포인트
 # =============================================================================
-
+##
 
 @app.post("/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -1545,7 +1545,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         marketing_consent_agreed=db_user.marketing_consent_agreed,
         terms_agreed_at=db_user.terms_agreed_at.isoformat()
     )
-
+#
 # 약관동의 조회 API 추가
 @app.get("/api/user/agreements", response_model=UserAgreements)
 def get_user_agreements(current_user: User = Depends(get_current_user)):
