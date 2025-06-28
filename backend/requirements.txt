@@ -14,7 +14,7 @@ networkx
 geojson
 geopy==2.4.1
 aiohttp==3.9.1
-
+Pillow
 scipy 
 numpy
 openai==1.54.3

@@ -28,7 +28,7 @@ import csv
 import shutil
 from pathlib import Path
 from exercise_route_service import exercise_route_service
-
+from sinkhole_analysis_service import sinkhole_analyzer
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
