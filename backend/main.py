@@ -2689,9 +2689,6 @@ async def calculate_steps_for_distance(request: StepsCalculatorRequest):
         raise HTTPException(status_code=400, detail=f"계산 오류: {str(e)}")
 
 
-# main.py 파일에서 이 함수를 찾아 교체하세요.
-
-
 @app.get("/exercise-areas")
 async def get_exercise_areas():
     """서울시 추천 운동 지역 목록 (수정된 버전)"""
@@ -3262,9 +3259,6 @@ async def test_destination_service():
         }
 
 
-# 정적 파일 마운트
-
-
 # React 앱 서빙 (모든 라우트의 맨 마지막에 배치)
 @app.get("/{full_path:path}")
 async def serve_react_app(full_path: str):
@@ -3285,6 +3279,7 @@ async def serve_react_app(full_path: str):
             "chatbot",
             "health",
             "status",
+            "exercise-areas",
         )
     ):
         raise HTTPException(status_code=404, detail="Not found")
