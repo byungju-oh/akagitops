@@ -17,7 +17,8 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="nav-container">
         <Link to="/" className="nav-logo">
-          🕳️ Seoul Sinkhole Predictor
+          <img src="/images/logo.png" alt="이 길 어때? 로고" className="nav-logo-img" />
+          <span className="nav-logo-text">이 길 어때?</span>
         </Link>
         
         <div className="nav-menu">

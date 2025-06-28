@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard';
 import RiskMap from './pages/RiskMap';
 import RouteSearch from './pages/RouteSearch';
 import ReportChatbot from './pages/ReportChatbot'; // 새로 추가
+import NotFound from './pages/NotFound'; // 404 페이지 import
 import './styles/App.css';
 import VoiceAssistantWidget from './components/VoiceAssistantWidget';
 
