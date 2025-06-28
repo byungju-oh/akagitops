@@ -13,8 +13,9 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import RiskMap from './pages/RiskMap';
 import RouteSearch from './pages/RouteSearch';
-import ReportChatbot from './pages/ReportChatbot'; // 새로 추가
-import NotFound from './pages/NotFound'; // 404 페이지 import
+import ReportChatbot from './pages/ReportChatbot';
+import Points from './pages/Points'; // 포인트 페이지 추가
+import NotFound from './pages/NotFound';
 import './styles/App.css';
 import VoiceAssistantWidget from './components/VoiceAssistantWidget';
 
@@ -31,11 +32,11 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/map" element={<RiskMap />} />
               <Route path="/route" element={<RouteSearch />} />
-              <Route path="/report" element={<ReportChatbot />} /> {/* 신고 페이지 추가 */}
+              <Route path="/report" element={<ReportChatbot />} />
+              <Route path="/points" element={<Points />} /> {/* 포인트 페이지 라우트 추가 */}
               
-              
-
               <Route path="/" element={<Navigate to="/dashboard" />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
             <VoiceAssistantWidget />
           </main>

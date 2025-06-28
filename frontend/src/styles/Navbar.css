@@ -70,3 +70,46 @@
 .logout-btn:hover {
   background-color: #c0392b;
 }
+
+/* frontend/src/styles/Navbar.css에 추가할 스타일 */
+
+/* 포인트 링크 스타일 */
+.points-link {
+  background: linear-gradient(135deg, #f39c12, #e67e22) !important;
+  color: white !important;
+  padding: 8px 16px !important;
+  border-radius: 20px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 10px rgba(243, 156, 18, 0.3) !important;
+  transition: all 0.3s ease !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.points-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.points-link:hover::before {
+  left: 100%;
+}
+
+.points-link:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4) !important;
+}
+
+/* 반응형 - 모바일에서 포인트 링크 */
+@media (max-width: 768px) {
+  .points-link {
+    padding: 6px 12px !important;
+    font-size: 14px !important;
+  }
+}

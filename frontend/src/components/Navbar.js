@@ -27,12 +27,13 @@ const Navbar = () => {
           <Link to="/route" className="nav-link">안전경로</Link>
           <Link to="/report" className="nav-link report-link">🚨 신고하기</Link>
 
-         
-          
           {user ? (
             // 로그인된 상태
             <>
-              <span className="user-info">안녕하세요, {user.username}님</span>
+              <Link to="/points" className="nav-link points-link">
+                🏆 포인트
+              </Link>
+              
               <button onClick={handleLogout} className="logout-btn">
                 로그아웃
               </button>
