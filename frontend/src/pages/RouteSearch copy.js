@@ -1,4 +1,4 @@
-// frontend/src/RouteSearch.js - 디버깅 로그가 추가된 버전
+// frontend/src/RouteSearch.js - 산책로 추천 위치 선택 기능이 추가된 최종 버전
 
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from 'react-leaflet';
@@ -72,56 +72,20 @@ const RouteSearch = () => {
   };
 
   const fetchRecommendedCourses = async (coords) => {
-    if (!coords) {
-      console.log('❌ fetchRecommendedCourses: coords가 없습니다');
-      return;
-    }
-    
-    console.log('🔍 fetchRecommendedCourses 시작:', coords);
+    if (!coords) return;
     setLoading(true);
-    
     try {
-      console.log('📡 API 호출 시작: /exercise-areas');
       const response = await axios.get('/exercise-areas');
-      console.log('✅ API 응답 받음:', response);
-      console.log('📊 응답 데이터:', response.data);
-      
       const areas = response.data.areas || [];
-      console.log('🏞️ areas 배열:', areas);
-      console.log('📏 areas 길이:', areas.length);
-      
-      if (areas.length === 0) {
-        console.warn('⚠️ areas 배열이 비어있습니다');
-        setRecommendedCourses([]);
-        return;
-      }
-      
-      const sortedCourses = areas.map((area, index) => {
-        console.log(`🏞️ 처리 중인 area ${index}:`, area);
-        
-        if (!area.center || !area.center.lat || !area.center.lng) {
-          console.error(`❌ area ${index}에 center 정보가 없습니다:`, area);
-          return { ...area, distance: 999999 };
-        }
-        
-        const distance = L.latLng(coords.lat, coords.lng).distanceTo(
-          L.latLng(area.center.lat, area.center.lng)
-        );
-        console.log(`📏 area ${index} (${area.name}) 거리: ${distance}m`);
-        
+      const sortedCourses = areas.map(area => {
+        const distance = L.latLng(coords.lat, coords.lng).distanceTo(L.latLng(area.center.lat, area.center.lng));
         return { ...area, distance: distance / 1000 };
       }).sort((a, b) => a.distance - b.distance);
-      
-      console.log('🎯 정렬된 courses:', sortedCourses);
       setRecommendedCourses(sortedCourses);
-      
     } catch (error) {
-      console.error('❌ fetchRecommendedCourses 에러:', error);
-      console.error('❌ 에러 상세:', error.response?.data);
       toast.error("추천 산책로를 불러오는 데 실패했습니다.");
     } finally {
       setLoading(false);
-      console.log('✅ fetchRecommendedCourses 완료');
     }
   };
 
@@ -131,7 +95,6 @@ const RouteSearch = () => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-          console.log('📍 현재 위치 획득:', coords);
           setStartCoords(coords);
           setStartLocation(`현재위치 (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`);
           
@@ -141,10 +104,7 @@ const RouteSearch = () => {
           
           setLoading(false);
           toast.success('현재 위치를 가져왔습니다.');
-          if (autoFetchCourses) {
-            console.log('🏃‍♂️ 자동으로 산책로 검색 시작');
-            fetchRecommendedCourses(coords);
-          }
+          if (autoFetchCourses) fetchRecommendedCourses(coords);
         },
         () => { setLoading(false); toast.error('위치 정보를 가져올 수 없습니다.'); },
         { timeout: 10000, enableHighAccuracy: true }
@@ -161,7 +121,6 @@ const RouteSearch = () => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-          console.log('📍 추천용 현재 위치 획득:', coords);
           setRecommendBaseCoords(coords);
           setRecommendBaseLocation(`현재위치 (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`);
           setLoading(false);
@@ -182,7 +141,6 @@ const RouteSearch = () => {
       toast.error("기준 위치를 먼저 설정해주세요.");
       return;
     }
-    console.log('🔍 수동 산책로 검색 시작:', recommendBaseCoords);
     fetchRecommendedCourses(recommendBaseCoords);
   };
 
@@ -191,7 +149,6 @@ const RouteSearch = () => {
       toast.error("기준 위치를 먼저 설정해주세요.");
       return;
     }
-    console.log('🎯 산책로 선택:', course);
     const destinationCoords = { lat: course.center.lat, lng: course.center.lng };
     setEndLocation(course.name);
     setEndCoords(destinationCoords);
@@ -209,7 +166,6 @@ const RouteSearch = () => {
       setShowRouteDetails(false);
       toast.success(`${course.name}(으)로 가는 안전 경로가 생성되었습니다!`);
     } catch (error) {
-      console.error('❌ 경로 생성 에러:', error);
       toast.error(error.response?.data?.detail || '추천 경로 검색 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
@@ -246,7 +202,6 @@ const RouteSearch = () => {
 
   // 새로 추가: 산책로 추천용 위치 선택
   const selectRecommendLocation = (place) => {
-    console.log('📍 추천 위치 선택:', place);
     setRecommendBaseLocation(place.place_name);
     setRecommendBaseCoords({ lat: parseFloat(place.y), lng: parseFloat(place.x) });
     setShowRecommendSuggestions(false);
@@ -277,14 +232,6 @@ const RouteSearch = () => {
   const formatDistance = (distance) => distance < 1 ? `${Math.round(distance * 1000)}m` : `${distance.toFixed(2)}km`;
   const formatDuration = (minutes) => minutes < 60 ? `${minutes}분` : `${Math.floor(minutes / 60)}시간 ${minutes % 60}분`;
   const getRouteColor = (type) => type?.includes('safe') ? '#4CAF50' : '#2196F3';
-
-  // 디버깅 정보 표시
-  console.log('🎯 현재 상태:', {
-    activeTab,
-    recommendBaseCoords,
-    recommendedCourses: recommendedCourses.length,
-    loading
-  });
 
   return (
     <div className="route-search">
@@ -344,21 +291,6 @@ const RouteSearch = () => {
           <div className="recommend-panel">
             <h3>🏞️ 주변 추천 산책로</h3>
             
-            {/* 디버깅 정보 표시 */}
-            <div style={{ 
-              background: '#f0f0f0', 
-              padding: '10px', 
-              borderRadius: '5px', 
-              fontSize: '12px', 
-              marginBottom: '10px',
-              fontFamily: 'monospace'
-            }}>
-              <div>디버깅 정보:</div>
-              <div>기준위치: {recommendBaseCoords ? `${recommendBaseCoords.lat.toFixed(4)}, ${recommendBaseCoords.lng.toFixed(4)}` : '없음'}</div>
-              <div>산책로 개수: {recommendedCourses.length}</div>
-              <div>로딩 상태: {loading ? '로딩중' : '완료'}</div>
-            </div>
-            
             {/* 새로 추가: 기준 위치 선택 섹션 */}
             <div className="recommend-location-section">
               <label>기준 위치:</label>
@@ -411,7 +343,7 @@ const RouteSearch = () => {
                     </div>
                     <h4 className="course-name">{course.name}</h4>
                     <div className="course-tags">
-                      {course.recommended_activities?.slice(0, 3).map((tag, i) => (<span key={i} className="tag">{tag}</span>))}
+                      {course.recommended_activities.slice(0, 3).map((tag, i) => (<span key={i} className="tag">{tag}</span>))}
                     </div>
                     <button className="course-select-btn">이곳으로 안전경로 안내</button>
                   </div>
