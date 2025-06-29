@@ -97,7 +97,7 @@ jobs:
       # 2단계: 애플리케이션 재시작
       # 이 단계 역시 /home/azureuser/akagitops 안에서 실행됩니다.
       - name: Restart Docker containers
-        run: sudo docker compose up -d --build --no-cache
+        run: sudo docker compose up -d --build 
 
       # 3단계: 시스템 정리
       # 이 단계 또한 /home/azureuser/akagitops 안에서 실행됩니다.
