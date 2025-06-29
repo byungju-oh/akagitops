@@ -1,3 +1,38 @@
+# # # .github/workflows/deploy.yml
+
+# # name: Deploy to Production VM
+
+# # # 언제 이 워크플로우를 실행할지 정의합니다.
+# # on:
+# #   push:
+# #     branches: [ "main" ] # 'main' 브랜치에 push 이벤트가 발생했을 때만 실행
+
+# # # 실행될 작업(들)을 정의합니다.
+# # jobs:
+# #   deploy:
+# #     # 이 작업이 실행될 환경을 지정합니다.
+# #     # 'self-hosted'는 우리가 직접 VM에 설치한 러너를 사용하겠다는 의미입니다.
+# #     runs-on: self-hosted
+
+# #     # 실제 실행될 단계(명령어)들을 순서대로 정의합니다.
+# #     steps:
+# #       # 1. GitHub Actions의 공식 'checkout' 액션을 사용하여 최신 코드를 가져옵니다.
+# #       #    이것이 'git pull'을 대체하는 가장 좋은 방법입니다.
+# #       - name: Checkout source code
+# #         uses: actions/checkout@v4
+
+# #       # 2. docker-compose 명령어로 애플리케이션을 빌드하고 재시작합니다.
+# #       #    'up --build'는 이미지가 변경되었을 경우 새로 빌드하고, 컨테이너를 다시 시작합니다.
+# #       #    '-d'는 백그라운드에서 실행하는 옵션입니다.
+# #       - name: Build and Deploy with Docker Compose
+# #         run: docker compose up -d --build
+
+# #       # 3. (선택사항, 강력 추천) 배포 후 사용되지 않는 오래된 도커 이미지를 정리합니다.
+# #       #    서버의 디스크 용량이 불필요하게 커지는 것을 방지합니다.
+# #       - name: Prune old docker images
+# #         run: docker image prune -a -f
+
+
 # # .github/workflows/deploy.yml
 
 # name: Deploy to Production VM
@@ -16,55 +51,55 @@
 
 #     # 실제 실행될 단계(명령어)들을 순서대로 정의합니다.
 #     steps:
-#       # 1. GitHub Actions의 공식 'checkout' 액션을 사용하여 최신 코드를 가져옵니다.
+#       # 1. 폴더바꾸기
 #       #    이것이 'git pull'을 대체하는 가장 좋은 방법입니다.
-#       - name: Checkout source code
-#         uses: actions/checkout@v4
-
+#       - name: cd
+#         run: cd /home/azureuser/akagitops
+       
+#       - name: 최신화
+#         run: sudo git pull
 #       # 2. docker-compose 명령어로 애플리케이션을 빌드하고 재시작합니다.
 #       #    'up --build'는 이미지가 변경되었을 경우 새로 빌드하고, 컨테이너를 다시 시작합니다.
 #       #    '-d'는 백그라운드에서 실행하는 옵션입니다.
 #       - name: Build and Deploy with Docker Compose
-#         run: docker compose up -d --build
+#         run: sudo docker compose up -d --build
 
 #       # 3. (선택사항, 강력 추천) 배포 후 사용되지 않는 오래된 도커 이미지를 정리합니다.
 #       #    서버의 디스크 용량이 불필요하게 커지는 것을 방지합니다.
 #       - name: Prune old docker images
-#         run: docker image prune -a -f
-
+#         run: sudo docker image prune -a -f
 
 # .github/workflows/deploy.yml
 
 name: Deploy to Production VM
 
-# 언제 이 워크플로우를 실행할지 정의합니다.
 on:
   push:
-    branches: [ "main" ] # 'main' 브랜치에 push 이벤트가 발생했을 때만 실행
+    branches: [ "main" ]
 
-# 실행될 작업(들)을 정의합니다.
 jobs:
   deploy:
-    # 이 작업이 실행될 환경을 지정합니다.
-    # 'self-hosted'는 우리가 직접 VM에 설치한 러너를 사용하겠다는 의미입니다.
     runs-on: self-hosted
 
-    # 실제 실행될 단계(명령어)들을 순서대로 정의합니다.
+    # 이 job의 모든 run 단계는 기본적으로 이 디렉토리에서 실행되도록 설정합니다.
+    defaults:
+      run:
+        working-directory: /home/azureuser/akagitops
+
     steps:
-      # 1. 폴더바꾸기
-      #    이것이 'git pull'을 대체하는 가장 좋은 방법입니다.
-      - name: cd
-        run: cd /home/azureuser/akagitops
-       
-      - name: 최신화
+      # 1단계: 코드 업데이트
+      # working-directory가 설정되어 있으므로, 이 명령어는 
+      # /home/azureuser/akagitops 안에서 실행됩니다.
+      - name: Update code to latest version
         run: sudo git pull
-      # 2. docker-compose 명령어로 애플리케이션을 빌드하고 재시작합니다.
-      #    'up --build'는 이미지가 변경되었을 경우 새로 빌드하고, 컨테이너를 다시 시작합니다.
-      #    '-d'는 백그라운드에서 실행하는 옵션입니다.
-      - name: Build and Deploy with Docker Compose
+          
+
+      # 2단계: 애플리케이션 재시작
+      # 이 단계 역시 /home/azureuser/akagitops 안에서 실행됩니다.
+      - name: Restart Docker containers
         run: sudo docker compose up -d --build
 
-      # 3. (선택사항, 강력 추천) 배포 후 사용되지 않는 오래된 도커 이미지를 정리합니다.
-      #    서버의 디스크 용량이 불필요하게 커지는 것을 방지합니다.
-      - name: Prune old docker images
+      # 3단계: 시스템 정리
+      # 이 단계 또한 /home/azureuser/akagitops 안에서 실행됩니다.
+      - name: Prune old Docker images
         run: sudo docker image prune -a -f
