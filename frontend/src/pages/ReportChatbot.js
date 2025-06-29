@@ -169,7 +169,7 @@ const ReportChatbot = () => {
       }
 
       console.log('📡 API 요청 전송 중...');
-      setAnalysisResult({ status: 'analyzing', message: 'AI가 이미지를 분석하고 있습니다...' });
+      setAnalysisResult({ status: 'analyzing', message: 'AI가 분석하고 있습니다...' });
 
       const response = await fetch('/chatbot/ask', {
         method: 'POST',
