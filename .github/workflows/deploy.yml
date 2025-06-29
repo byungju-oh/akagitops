@@ -1,163 +1,69 @@
-name: Deploy Sinkhole App to Azure Container Apps
+# # .github/workflows/deploy.yml
 
+# name: Deploy to Production VM
+
+# # 언제 이 워크플로우를 실행할지 정의합니다.
+# on:
+#   push:
+#     branches: [ "main" ] # 'main' 브랜치에 push 이벤트가 발생했을 때만 실행
+
+# # 실행될 작업(들)을 정의합니다.
+# jobs:
+#   deploy:
+#     # 이 작업이 실행될 환경을 지정합니다.
+#     # 'self-hosted'는 우리가 직접 VM에 설치한 러너를 사용하겠다는 의미입니다.
+#     runs-on: self-hosted
+
+#     # 실제 실행될 단계(명령어)들을 순서대로 정의합니다.
+#     steps:
+#       # 1. GitHub Actions의 공식 'checkout' 액션을 사용하여 최신 코드를 가져옵니다.
+#       #    이것이 'git pull'을 대체하는 가장 좋은 방법입니다.
+#       - name: Checkout source code
+#         uses: actions/checkout@v4
+
+#       # 2. docker-compose 명령어로 애플리케이션을 빌드하고 재시작합니다.
+#       #    'up --build'는 이미지가 변경되었을 경우 새로 빌드하고, 컨테이너를 다시 시작합니다.
+#       #    '-d'는 백그라운드에서 실행하는 옵션입니다.
+#       - name: Build and Deploy with Docker Compose
+#         run: docker compose up -d --build
+
+#       # 3. (선택사항, 강력 추천) 배포 후 사용되지 않는 오래된 도커 이미지를 정리합니다.
+#       #    서버의 디스크 용량이 불필요하게 커지는 것을 방지합니다.
+#       - name: Prune old docker images
+#         run: docker image prune -a -f
+
+
+# .github/workflows/deploy.yml
+
+name: Deploy to Production VM
+
+# 언제 이 워크플로우를 실행할지 정의합니다.
 on:
   push:
-    branches: [main]
-  workflow_dispatch:  # 수동 실행 가능
+    branches: [ "main" ] # 'main' 브랜치에 push 이벤트가 발생했을 때만 실행
 
-env:
-  REGISTRY_LOGIN_SERVER: ${{ secrets.REGISTRY_LOGIN_SERVER }}
-  REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}  
-  REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-  RESOURCE_GROUP: ${{ secrets.RESOURCE_GROUP }}
-  CONTAINER_APP_NAME: ${{ secrets.CONTAINER_APP_NAME }}
-
+# 실행될 작업(들)을 정의합니다.
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    
+  deploy:
+    # 이 작업이 실행될 환경을 지정합니다.
+    # 'self-hosted'는 우리가 직접 VM에 설치한 러너를 사용하겠다는 의미입니다.
+    runs-on: self-hosted
+
+    # 실제 실행될 단계(명령어)들을 순서대로 정의합니다.
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
+      # 1. 폴더바꾸기
+      #    이것이 'git pull'을 대체하는 가장 좋은 방법입니다.
+      - name: cd
+        run: cd /home/azureuser/akagitops
+      - name: 최신화
+        run: git pull
+      # 2. docker-compose 명령어로 애플리케이션을 빌드하고 재시작합니다.
+      #    'up --build'는 이미지가 변경되었을 경우 새로 빌드하고, 컨테이너를 다시 시작합니다.
+      #    '-d'는 백그라운드에서 실행하는 옵션입니다.
+      - name: Build and Deploy with Docker Compose
+        run: docker compose up -d --build
 
-    - name: 🔨 Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: 🔐 Log in to Azure Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY_LOGIN_SERVER }}
-        username: ${{ env.REGISTRY_USERNAME }}
-        password: ${{ env.REGISTRY_PASSWORD }}
-
-    - name: 🔨 Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: |
-          ${{ env.REGISTRY_LOGIN_SERVER }}/sinkhole-app:${{ github.sha }}
-          ${{ env.REGISTRY_LOGIN_SERVER }}/sinkhole-app:latest
-        build-args: |
-          REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }}
-          REACT_APP_MAP_CENTER_LAT=${{ vars.REACT_APP_MAP_CENTER_LAT }}
-          REACT_APP_MAP_CENTER_LNG=${{ vars.REACT_APP_MAP_CENTER_LNG }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: 🔐 Install Azure CLI and Login
-      run: |
-        # Azure CLI 이미 설치되어 있는지 확인
-        az version
-        
-        # Service Principal로 로그인
-        az login --service-principal \
-          --username ${{ secrets.AZURE_CLIENT_ID }} \
-          --password ${{ secrets.AZURE_CLIENT_SECRET }} \
-          --tenant ${{ secrets.AZURE_TENANT_ID }}
-        
-        # 구독 설정
-        az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        
-        # 로그인 확인
-        az account show
-
-    - name: 🚀 Deploy to Azure Container Apps
-      run: |
-        az containerapp update \
-          --name ${{ env.CONTAINER_APP_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --image ${{ env.REGISTRY_LOGIN_SERVER }}/sinkhole-app:${{ github.sha }}
-
-    - name: 🔧 Update environment variables
-      run: |
-        az containerapp update \
-          --name ${{ env.CONTAINER_APP_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --set-env-vars \
-            SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-            DATABASE_URL="${{ secrets.DATABASE_URL }}" \
-            KAKAO_API_KEY="${{ secrets.KAKAO_API_KEY }}" \
-            AZURE_OPENAI_API_KEY="${{ secrets.AZURE_OPENAI_API_KEY }}" \
-            SEARCH_INDEX_NAME="${{ secrets.SEARCH_INDEX_NAME }}" \
-            SEARCH_KEY="${{ secrets.SEARCH_KEY }}" \
-            SEARCH_ENDPOINT="${{ secrets.SEARCH_ENDPOINT }}" \
-            ENDPOINT_URL="${{ secrets.ENDPOINT_URL }}" \
-            DEPLOYMENT_NAME="${{ secrets.DEPLOYMENT_NAME }}" \
-            AZURE_SPEECH_KEY="${{ secrets.AZURE_SPEECH_KEY }}" \
-            AZURE_SPEECH_REGION="${{ secrets.AZURE_SPEECH_REGION }}" \
-            PORT=8000
-
-    - name: 🔧 Update target port
-      run: |
-        az containerapp ingress update \
-          --name ${{ env.CONTAINER_APP_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --target-port 8000
-
-    - name: ⏳ Wait for deployment completion
-      run: |
-        echo "🔄 배포 완료 대기 중..."
-        sleep 30
-        
-        # 배포 상태 확인
-        for i in {1..12}; do
-          RUNNING_STATUS=$(az containerapp show \
-            --name ${{ env.CONTAINER_APP_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --query "properties.runningStatus" -o tsv)
-          
-          echo "배포 상태 확인 $i/12: $RUNNING_STATUS"
-          
-          if [ "$RUNNING_STATUS" = "Running" ]; then
-            echo "✅ 배포 완료!"
-            break
-          fi
-          
-          if [ $i -eq 12 ]; then
-            echo "❌ 배포 타임아웃"
-            exit 1
-          fi
-          
-          sleep 15
-        done
-
-    - name: ✅ Verify deployment
-      run: |
-        # 실제 URL 가져오기
-        APP_URL=$(az containerapp show \
-          --name ${{ env.CONTAINER_APP_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --query "properties.configuration.ingress.fqdn" -o tsv)
-        
-        echo "🚀 싱크홀 앱이 성공적으로 배포되었습니다!"
-        echo "URL: https://$APP_URL"
-        
-        # 배포 상태 확인
-        RUNNING_STATUS=$(az containerapp show \
-          --name ${{ env.CONTAINER_APP_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --query "properties.runningStatus" -o tsv)
-        
-        echo "상태: $RUNNING_STATUS"
-        
-        # API 엔드포인트 테스트 (약간의 대기 후)
-        echo "🔍 API 엔드포인트 테스트 중..."
-        sleep 10
-        
-        # Health check 테스트
-        echo "Testing health endpoints:"
-        curl -f -m 10 "https://$APP_URL/health" && echo "✅ /health 응답 정상" || echo "❌ /health 응답 실패"
-        curl -f -m 10 "https://$APP_URL/api/health" && echo "✅ /api/health 응답 정상" || echo "❌ /api/health 응답 실패"
-        curl -f -m 10 "https://$APP_URL/status" && echo "✅ /status 응답 정상" || echo "❌ /status 응답 실패"
-        
-        # 메인 페이지 테스트
-        curl -f -m 10 "https://$APP_URL/" && echo "✅ 메인 페이지 응답 정상" || echo "❌ 메인 페이지 응답 실패"
-
-    - name: 📊 Show recent logs
-      run: |
-        echo "📋 최근 로그:"
-        az containerapp logs show \
-          --name ${{ env.CONTAINER_APP_NAME }} \
-          --resource-group ${{ env.RESOURCE_GROUP }} \
-          --tail 20 || echo "로그를 가져올 수 없습니다. 수동으로 확인해주세요."
+      # 3. (선택사항, 강력 추천) 배포 후 사용되지 않는 오래된 도커 이미지를 정리합니다.
+      #    서버의 디스크 용량이 불필요하게 커지는 것을 방지합니다.
+      - name: Prune old docker images
+        run: docker image prune -a -f
