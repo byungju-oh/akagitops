@@ -55,17 +55,16 @@ jobs:
       #    이것이 'git pull'을 대체하는 가장 좋은 방법입니다.
       - name: cd
         run: cd /home/azureuser/akagitops
-      - name: cd
-        run: sudo su  
+       
       - name: 최신화
-        run: git pull
+        run: sudo git pull
       # 2. docker-compose 명령어로 애플리케이션을 빌드하고 재시작합니다.
       #    'up --build'는 이미지가 변경되었을 경우 새로 빌드하고, 컨테이너를 다시 시작합니다.
       #    '-d'는 백그라운드에서 실행하는 옵션입니다.
       - name: Build and Deploy with Docker Compose
-        run: docker compose up -d --build
+        run: sudo docker compose up -d --build
 
       # 3. (선택사항, 강력 추천) 배포 후 사용되지 않는 오래된 도커 이미지를 정리합니다.
       #    서버의 디스크 용량이 불필요하게 커지는 것을 방지합니다.
       - name: Prune old docker images
-        run: docker image prune -a -f
+        run: sudo docker image prune -a -f
