@@ -169,7 +169,7 @@ const ReportChatbot = () => {
       }
 
       console.log('📡 API 요청 전송 중...');
-      setAnalysisResult({ status: 'analyzing', message: 'AI가 분석하고 있습니다...' });
+      //setAnalysisResult({ status: 'analyzing', message: 'AI가 분석하고 있습니다...' });
 
       const response = await fetch('/chatbot/ask', {
         method: 'POST',
@@ -362,7 +362,7 @@ const ReportChatbot = () => {
           {messages.map((message) => (
             <div key={message.id} className={`message ${message.type}`}>
               <div className="message-avatar">
-                {message.type === 'user' ? '👤' : '🤖'}
+                {message.type === 'user' ? '👤' : <img src="/images/logo.png" alt="챗봇" />}
               </div>
               <div className="message-content">
                 {message.image && (
@@ -457,22 +457,24 @@ const ReportChatbot = () => {
           ))}
           
           {isLoading && (
-            <div className="message bot">
-              <div className="message-avatar">🤖</div>
-              <div className="message-content">
-                <div className="typing-indicator">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-                {analysisResult && (
-                  <div className="analysis-status">
-                    {analysisResult.message}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+  <div className="message bot loading">
+    <div className="message-content">
+      <div className="loading-message">
+        <img 
+          src="/images/thinkre.png" 
+          alt="AI 분석 중" 
+          className="loading-chatbot-image"
+        />
+        
+        <div className="loading-typing-indicator">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
         </div>
 
         {/* 미리 정의된 질문들 */}
