@@ -31,3 +31,19 @@ body {
   color: #333;
 }
  
+/* CSS 파일에 추가 - 가장 간단한 해결책 */
+
+.voice-button-icon {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  border-radius: 50%; /* 🔑 원형으로 자르기 */
+  pointer-events: none; /* 🔑 이 한 줄이 핵심! */
+}
+
+/* 이제 버튼 전체가 하나로 호버됩니다 */
+.voice-floating-btn:hover {
+  transform: translateY(-3px) scale(1.05) !important;
+  box-shadow: 0 12px 40px rgba(255, 107, 107, 0.5) !important;
+}
+

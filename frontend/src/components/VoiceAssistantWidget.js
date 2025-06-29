@@ -607,7 +607,13 @@ const stopRecording = () => {
     if (isRecording) return '⏹️';  // 녹음 중 → 중지 아이콘
     if (isProcessing) return '⏹️'; // 처리 중 → 중지 아이콘
     if (isSpeaking) return '🔇';   // 음성 재생 중 → 음소거 아이콘
-    return '🎤';                  // 기본 → 마이크 아이콘
+    return (
+    <img 
+      src="/images/mic2.png" 
+      alt="음성 어시스턴트" 
+      className="voice-button-icon"
+    />
+  );                 // 기본 → 마이크 아이콘
   };
 
   // 버튼 타이틀 결정
