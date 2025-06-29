@@ -61,8 +61,8 @@
 }
 
 .message-avatar {
-  width: 40px;
-  height: 40px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1087,5 +1087,22 @@
   
   .loading-status-text {
     font-size: 14px;
+  }
+}
+.header-icon {
+  width: 100px;
+  height: 100px;
+  margin-right: 10px;
+  vertical-align: middle;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+/* 반응형 - 모바일에서 더 작게 */
+@media (max-width: 768px) {
+  .header-icon {
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
   }
 }

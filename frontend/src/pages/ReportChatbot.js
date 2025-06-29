@@ -9,7 +9,7 @@ const ReportChatbot = () => {
   const [messages, setMessages] = useState([{
     id: 1,
     type: 'bot',
-    content: '안녕하세요! 싱크홀 신고 도우미입니다. 🕳️\n\n궁금한 점이 있으시거나 사진을 업로드해주시면 AI가 분석해드릴게요!',
+    content: '안녕하세요! 싱크홀 신고 도우미입니다. \n\n궁금한 점이 있으시거나 사진을 업로드해주시면 AI가 분석해드릴게요!',
     timestamp: new Date()
   }]);
   
@@ -351,7 +351,14 @@ const ReportChatbot = () => {
     <div className="report-chatbot">
       <div className="chatbot-container">
         <div className="chatbot-header">
-          <h1>🕳️ 싱크홀 신고 도우미</h1>
+          <h1>
+  <img 
+    src="/images/hole.png" 
+    alt="싱크홀 도우미" 
+    className="header-icon"
+  /> 
+  싱크홀 신고 도우미
+</h1>
           <p>
             사진 업로드시 AI가 자동으로 싱크홀을 분석해드립니다!
             
@@ -362,7 +369,7 @@ const ReportChatbot = () => {
           {messages.map((message) => (
             <div key={message.id} className={`message ${message.type}`}>
               <div className="message-avatar">
-                {message.type === 'user' ? '👤' : <img src="/images/logo.png" alt="챗봇" />}
+                {message.type === 'user' ? '👤' : <img src="/images/ai.png" alt="챗봇" />}
               </div>
               <div className="message-content">
                 {message.image && (
